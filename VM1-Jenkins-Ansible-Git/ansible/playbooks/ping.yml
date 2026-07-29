@@ -1,0 +1,8 @@
+---
+- name: Test connectivity to all aplication servers
+  hosts: application_servers
+  gather_facts: false
+
+  tasks:
+    - name: Ping all servers
+      ansible.builtin.ping:
