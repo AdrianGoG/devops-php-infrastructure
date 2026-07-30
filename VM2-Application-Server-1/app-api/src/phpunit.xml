@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true"
+         convertDeprecationsToExceptions="false">
+    <!--
+        convertDeprecationsToExceptions is off on purpose: this application uses
+        constructs that PHP 7.4 already reports as deprecated (and PHP 8 removed
+        entirely). The deprecations are the documented starting point of the
+        migration, not test failures. See MIGRATION.md.
+    -->
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <coverage>
+        <include>
+            <directory suffix=".php">app</directory>
+        </include>
+    </coverage>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_DEBUG" value="true"/>
+        <env name="API_KEY" value="test-api-key"/>
+        <!--
+            The suite runs against a dedicated MySQL database, never against the
+            application one. The stack creates it on first boot through
+            docker/mysql/init/01-test-database.sql
+        -->
+        <env name="DB_HOST" value="127.0.0.1"/>
+        <env name="DB_PORT" value="33063"/>
+        <env name="DB_DATABASE" value="app_api_test"/>
+        <env name="DB_USERNAME" value="api"/>
+        <env name="DB_PASSWORD" value="secret"/>
+        <env name="LOG_PATH" value="storage/logs/testing.log"/>
+    </php>
+</phpunit>

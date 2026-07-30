@@ -1,0 +1,178 @@
+pipeline {
+    agent any
+
+    triggers {
+        // A GitHub webhook needs Jenkins to be reachable from the internet,
+        // which it is not on a local network. Polling asks GitHub instead.
+        pollSCM('H/5 * * * *')
+    }
+
+    parameters {
+        choice(
+            name: 'SERVER',
+            choices: ['all', 'vm2', 'vm3', 'vm4'],
+            description: 'Which server to deploy to'
+        )
+        string(
+            name: 'APP',
+            defaultValue: '',
+            description: 'One application only, for example app-crm. Empty means all of them.'
+        )
+        booleanParam(
+            name: 'RUN_TESTS',
+            defaultValue: true,
+            description: 'Run the test suites before deploying'
+        )
+    }
+
+    environment {
+        ANSIBLE = 'VM1-Jenkins-Ansible-Git/ansible'
+        SCRIPTS = 'VM1-Jenkins-Ansible-Git/scripts'
+        MONITOR = 'python-monitor/infra_check.py'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Validate the structure') {
+            steps {
+                script {
+                    def apps = []
+
+                    ['VM2-Application-Server-1', 'VM3-Application-Server-2', 'VM4-Application-Server-3'].each { server ->
+                        sh(script: "ls ${server}", returnStdout: true).trim().split('\n').each { app ->
+                            if (app.startsWith('app-')) {
+                                apps.add("${server}/${app}")
+                            }
+                        }
+                    }
+
+                    def missing = []
+
+                    apps.each { app ->
+                        ['docker-compose.yml', 'docker/php/Dockerfile', 'docker/nginx/default.conf'].each { file ->
+                            if (!fileExists("${app}/${file}")) {
+                                missing.add("${app}/${file}")
+                            }
+                        }
+                    }
+
+                    if (missing) {
+                        error("These files are missing:\n" + missing.join('\n'))
+                    }
+
+                    echo "${apps.size()} applications, all with the files they need."
+                }
+            }
+        }
+
+        stage('Tests') {
+            when {
+                expression { params.RUN_TESTS }
+            }
+            steps {
+                script {
+                    def apps = []
+
+                    if (params.APP) {
+                        apps = sh(
+                            script: "find VM*-Application-Server-* -maxdepth 1 -name '${params.APP}' -type d",
+                            returnStdout: true
+                        ).trim().split('\n').findAll { it }
+                    } else {
+                        def servers = params.SERVER == 'all'
+                            ? ['VM2-Application-Server-1', 'VM3-Application-Server-2', 'VM4-Application-Server-3']
+                            : [[vm2: 'VM2-Application-Server-1', vm3: 'VM3-Application-Server-2', vm4: 'VM4-Application-Server-3'][params.SERVER]]
+
+                        servers.each { server ->
+                            sh(script: "ls ${server}", returnStdout: true).trim().split('\n').each { app ->
+                                if (app.startsWith('app-')) {
+                                    apps.add("${server}/${app}")
+                                }
+                            }
+                        }
+                    }
+
+                    def failed = []
+
+                    apps.each { app ->
+                        def result = sh(
+                            script: "bash ${SCRIPTS}/run-tests.sh ${app}",
+                            returnStatus: true
+                        )
+
+                        if (result != 0) {
+                            failed.add(app)
+                        }
+                    }
+
+                    if (failed) {
+                        // The applications of VM4 cannot install their dependencies
+                        // on PHP 8.2, so their tests fail until the upgrade. That is
+                        // expected, and it is why this is UNSTABLE and not an error.
+                        currentBuild.result = 'UNSTABLE'
+                        echo "Tests failed for: ${failed.join(', ')}"
+                    }
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                dir("${ANSIBLE}") {
+                    script {
+                        def limit = params.SERVER == 'all' ? '' : "--limit ${params.SERVER}"
+                        def only = params.APP ? "-e '{\"only_apps\": [\"${params.APP}\"]}'" : ''
+
+                        sh """
+                            ansible-playbook playbooks/deploy.yml \
+                                -e repo_dir=${env.WORKSPACE} ${limit} ${only}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Smoke test') {
+            steps {
+                script {
+                    def only = params.APP ? "--only ${params.APP}" : ''
+
+                    def result = sh(
+                        script: "python3 ${MONITOR} ${only} --report after-deploy.json",
+                        returnStatus: true
+                    )
+
+                    if (result != 0) {
+                        currentBuild.result = 'UNSTABLE'
+                        echo 'Some applications are not answering. See after-deploy.json.'
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'after-deploy.json', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'python-monitor/logs/*.log', allowEmptyArchive: true
+        }
+
+        success {
+            echo 'Deployed, and every application answers.'
+        }
+
+        unstable {
+            echo 'Deployed, but something is not answering or a test failed.'
+        }
+
+        failure {
+            echo 'The deployment failed. Check the Ansible output above.'
+        }
+    }
+}

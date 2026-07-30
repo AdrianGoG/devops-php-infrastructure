@@ -1,0 +1,22 @@
+{
+
+  "servers": [
+    { "key": "vm2", "name": "VM2 - Application Server 1", "host": "192.168.0.170", "port": 22 },
+    { "key": "vm3", "name": "VM3 - Application Server 2", "host": "192.168.0.171", "port": 22 },
+    { "key": "vm4", "name": "VM4 - Application Server 3", "host": "192.168.0.172", "port": 22 }
+  ],
+
+  "applications": [
+    { "name": "app-company-website", "server": "vm2", "url": "http://192.168.0.170:8081/health" },
+    { "name": "app-user-dashboard",  "server": "vm2", "url": "http://192.168.0.170:8082/health" },
+    { "name": "app-api",             "server": "vm2", "url": "http://192.168.0.170:8083/api/health" },
+
+    { "name": "app-crm",             "server": "vm3", "url": "http://192.168.0.171:8081/health.php" },
+    { "name": "app-inventory",       "server": "vm3", "url": "http://192.168.0.171:8082/health" },
+    { "name": "app-ticket-system",   "server": "vm3", "url": "http://192.168.0.171:8083/health" },
+
+    { "name": "app-blog",            "server": "vm4", "url": "http://192.168.0.172:8081/health" },
+    { "name": "app-file-manager",    "server": "vm4", "url": "http://192.168.0.172:8082/health" },
+    { "name": "app-monitor",         "server": "vm4", "url": "http://192.168.0.172:8083/health" }
+  ]
+}

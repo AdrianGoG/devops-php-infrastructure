@@ -1,0 +1,50 @@
+---
+- name: Roll back the PHP version of the applications
+  hosts: application_servers
+
+  vars:
+    project_dir: /opt/devops-php-infrastructure
+    only_apps: []
+
+  tasks:
+    - name: Choose the applications to roll back
+      ansible.builtin.set_fact:
+        selected_apps: "{{ apps if only_apps | length == 0 else apps | selectattr('name', 'in', only_apps) | list }}"
+
+    - name: Look for the backups
+      ansible.builtin.stat:
+        path: "{{ project_dir }}/{{ item.dir }}/docker/php/Dockerfile.backup"
+      loop: "{{ selected_apps }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: backups
+
+    - name: Say which applications have no backup
+      ansible.builtin.debug:
+        msg: "{{ item.item.name }}: no Dockerfile.backup, nothing to roll back"
+      loop: "{{ backups.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+      when: not item.stat.exists
+
+    - name: Put the old Dockerfile back
+      ansible.builtin.copy:
+        src: "{{ project_dir }}/{{ item.item.dir }}/docker/php/Dockerfile.backup"
+        dest: "{{ project_dir }}/{{ item.item.dir }}/docker/php/Dockerfile"
+        remote_src: true
+        mode: "0644"
+      loop: "{{ backups.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+      when: item.stat.exists
+      register: restored
+
+    - name: Rebuild the containers
+      ansible.builtin.command:
+        cmd: docker compose up -d --build
+        chdir: "{{ project_dir }}/{{ item.item.item.dir }}"
+      loop: "{{ restored.results }}"
+      loop_control:
+        label: "{{ item.item.item.name }}"
+      when: item.changed | default(false)
+      changed_when: true

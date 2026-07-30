@@ -1,0 +1,27 @@
+---
+apps:
+  - name: app-company-website
+    dir: VM2-Application-Server-1/app-company-website
+    port: 8081
+    health: /health
+    setup:
+      - composer install --no-dev --optimize-autoloader --no-interaction
+      - php artisan migrate --force
+      - php artisan config:clear
+
+  - name: app-user-dashboard
+    dir: VM2-Application-Server-1/app-user-dashboard
+    port: 8082
+    health: /health
+    setup:
+      - composer install --no-dev --optimize-autoloader --no-interaction
+      - php artisan migrate --force
+      - php artisan config:clear
+
+  - name: app-api
+    dir: VM2-Application-Server-1/app-api
+    port: 8083
+    health: /api/health
+    setup:
+      - composer install --no-dev --optimize-autoloader --no-interaction
+      - php bin/console migrate

@@ -1,0 +1,5 @@
+# Snapshots produced by --report are run artefacts, not source.
+before.json
+after.json
+*.snapshot.json
+__pycache__/

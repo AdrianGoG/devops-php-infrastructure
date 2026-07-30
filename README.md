@@ -1,2 +1,317 @@
 # devops-php-infrastructure
-ITSchool Final Project
+
+A complete CI/CD pipeline for managing and modernising a PHP web infrastructure.
+ITSchool final project, theme 2.
+
+Four Ubuntu servers, nine PHP applications on five different PHP versions, all
+containerised, deployed and upgraded from a single control node - and monitored
+well enough to tell you exactly what broke and why.
+
+| | |
+|---|---|
+| Servers | 4 (1 control node + 3 application servers) |
+| Applications | 9 PHP applications, each in its own containers |
+| PHP versions | 7.4 · 8.0 · 8.1 · 8.2 · 8.3, running side by side |
+| Frameworks | Laravel 9 · 10 · 12 · 13, and two applications with no framework |
+| Tests | 206 automated tests, run before every deployment |
+
+**Start here:** [docs/architecture.md](docs/architecture.md) explains what each
+application does and which ones talk to each other.
+
+## The estate
+
+| Application | Server | Port | PHP | Framework |
+|---|---|---|---|---|
+| app-company-website | VM2 | 8081 | 8.3 | Laravel 13 |
+| app-user-dashboard | VM2 | 8082 | 8.2 | Laravel 12 + Breeze |
+| app-api | VM2 | 8083 | 7.4 | plain PHP |
+| app-crm | VM3 | 8081 | 7.4 | plain PHP |
+| app-inventory | VM3 | 8082 | 8.0 | Laravel 9 |
+| app-ticket-system | VM3 | 8083 | 8.1 | Laravel 10 |
+| app-blog | VM4 | 8081 | 8.2 | Laravel 13 |
+| app-file-manager | VM4 | 8082 | 8.2 | Laravel 13 |
+| app-monitor | VM4 | 8083 | 8.2 | Laravel 13 |
+
+## Repository layout
+
+```
+VM1-Jenkins-Ansible-Git/     the control node
+  ansible/                   inventory, host_vars, playbooks
+  jenkins/                   the two pipelines
+  scripts/                   run-tests.sh
+VM2-Application-Server-1/    3 applications
+VM3-Application-Server-2/    3 applications
+VM4-Application-Server-3/    3 applications
+python-monitor/              infra_check.py - the check utility
+monitoring/                  Prometheus + Grafana
+docs/                        architecture
+```
+
+Every application folder has the same shape: `docker-compose.yml`,
+`docker/php/Dockerfile`, `docker/nginx/default.conf`, `src/` and a `readme.md`.
+
+---
+
+# Installation
+
+## 1. What each machine needs
+
+**VM1 - control node**
+
+```bash
+sudo apt update
+sudo apt install -y git ansible rsync python3-pip docker.io docker-compose-v2
+```
+
+**VM2, VM3, VM4 - application servers**
+
+```bash
+sudo apt install -y docker.io docker-compose-v2 rsync
+sudo usermod -aG docker $USER      # then log out and back in
+```
+
+`docker compose version` (with a space) has to answer on all four machines - the
+playbooks use the v2 syntax. `rsync` has to be installed on VM1 **and** on the
+three servers, because that is how the code is distributed.
+
+## 2. SSH keys
+
+Only VM1 talks to the servers, and it does it over SSH:
+
+```bash
+ssh-keygen -t ed25519
+ssh-copy-id verloc@192.168.0.170
+ssh-copy-id blackwell@192.168.0.171
+ssh-copy-id cortana@192.168.0.172
+```
+
+The users and addresses are in
+[`VM1-Jenkins-Ansible-Git/ansible/inventory.ini`](VM1-Jenkins-Ansible-Git/ansible/inventory.ini) -
+change them there if yours are different.
+
+## 3. Clone the repository on VM1
+
+```bash
+git clone https://github.com/AdrianGoG/devops-php-infrastructure.git
+cd devops-php-infrastructure
+pip3 install -r python-monitor/requirements.txt
+```
+
+The servers never clone anything. VM1 is the only machine that talks to GitHub.
+
+## 4. Check that Ansible reaches the servers
+
+```bash
+cd VM1-Jenkins-Ansible-Git/ansible
+ansible-playbook playbooks/ping.yml
+```
+
+**If this fails, nothing else will work.** Fix the SSH keys before going on.
+
+---
+
+# Bringing the infrastructure online
+
+Everything below runs on VM1, from `VM1-Jenkins-Ansible-Git/ansible`.
+
+## 5. Deploy VM2 and VM3
+
+```bash
+ansible-playbook playbooks/deploy.yml --limit vm2
+ansible-playbook playbooks/deploy.yml --limit vm3
+```
+
+For each application the playbook copies the folder with rsync, creates `.env`
+from `.env.example` if it does not exist, runs `docker compose up -d`, generates
+the Laravel application key on the first run, installs the dependencies, runs the
+migrations, restarts PHP and waits for the health endpoint.
+
+Nothing has to be copied by hand and `docker build` never has to be run:
+`docker compose up -d` builds the image the first time it needs one.
+
+The first run takes a few minutes - the `php`, `nginx` and `mysql` images are
+downloaded and the PHP images are built. Later runs take seconds.
+
+## 6. Deploy VM4 - two passes
+
+The three applications on VM4 run Laravel 13 on PHP 8.2, and Composer refuses to
+install on a PHP version that does not satisfy `composer.json`. So: copy the
+files, raise PHP, then deploy properly.
+
+```bash
+ansible-playbook playbooks/deploy.yml --limit vm4 -e skip_setup=true
+ansible-playbook playbooks/upgrade-php.yml --limit vm4
+ansible-playbook playbooks/deploy.yml --limit vm4
+```
+
+## 7. Set the real passwords
+
+`.env.example` ships with the same credentials as `docker-compose.yml`, so the
+first deployment works as it is. Before anything is reachable from outside the
+lab, change them on each server:
+
+```bash
+nano /opt/devops-php-infrastructure/VM2-Application-Server-1/app-api/src/.env
+```
+
+`.env` is never overwritten by a later deployment.
+
+## 8. Monitoring
+
+```bash
+cd ~/devops-php-infrastructure/monitoring
+docker compose up -d
+
+cd ../VM1-Jenkins-Ansible-Git/ansible
+ansible-playbook playbooks/monitoring.yml
+```
+
+- Prometheus on VM1, port **9090** - `/targets` should show everything UP
+- Grafana on VM1, port **3000**, user `admin`, password `admin` - **change it**
+
+The dashboard and the datasource are provisioned from files; there is nothing to
+click through.
+
+## 9. Jenkins
+
+```bash
+sudo apt install -y openjdk-17-jre
+# then Jenkins from the official repository
+```
+
+The `jenkins` user needs its own SSH keys to the servers, and access to Docker:
+
+```bash
+sudo -u jenkins ssh-keygen -t ed25519
+sudo -u jenkins ssh-copy-id verloc@192.168.0.170      # and the other two
+sudo usermod -aG docker jenkins
+sudo systemctl restart jenkins
+```
+
+Two jobs, both **Pipeline → Pipeline script from SCM**, pointing at this
+repository:
+
+| Job | Script Path | Trigger |
+|---|---|---|
+| `deploy` | `VM1-Jenkins-Ansible-Git/jenkins/Jenkinsfile.deploy` | polls GitHub every 5 minutes |
+| `upgrade-php` | `VM1-Jenkins-Ansible-Git/jenkins/Jenkinsfile.upgrade` | manual, with parameters |
+
+A GitHub webhook needs Jenkins to be reachable from the internet. On a local
+network it is not, so the deploy job polls instead. Replace `pollSCM` with
+`githubPush()` if you expose Jenkins through a tunnel.
+
+---
+
+# Checking that it all works
+
+```bash
+cd ~/devops-php-infrastructure/python-monitor
+python3 infra_check.py
+```
+
+```
+  Infrastructure report - 31.07.2026 10:14:22
+  ----------------------------------------------------------------------
+  vm2    192.168.0.170    reachable
+  vm3    192.168.0.171    reachable
+  vm4    192.168.0.172    reachable
+  ----------------------------------------------------------------------
+  application           srv   php      code   time     state
+  app-company-website   vm2   8.2      500    12 ms    error
+  app-user-dashboard    vm2   8.2.31   200    52 ms    ok
+  ...
+```
+
+## What you should see the first time
+
+**Five applications working and four down - and that is correct.**
+
+`app-company-website`, `app-blog`, `app-file-manager` and `app-monitor` run
+Laravel 13 on PHP 8.2, one version below what the framework requires. They answer
+HTTP 500 until PHP is raised to 8.3. That is the starting point of the migration,
+not a broken installation.
+
+---
+
+# The migration
+
+This is what the project is actually about. Raising PHP fixes four applications
+and breaks three others - for three completely different reasons.
+
+```bash
+cd python-monitor
+python3 infra_check.py --report before.json
+
+cd ../VM1-Jenkins-Ansible-Git/ansible
+ansible-playbook playbooks/upgrade-php.yml
+
+cd ../../python-monitor
+python3 infra_check.py --compare before.json
+```
+
+| | Applications | What fixes them |
+|---|---|---|
+| Fixed by the upgrade | app-company-website, app-blog, app-file-manager, app-monitor | the upgrade itself |
+| Unaffected | app-user-dashboard, app-ticket-system | already compatible |
+| Broken by the upgrade | **app-crm**, **app-api**, **app-inventory** | source code changes |
+
+The three that break are documented line by line, with the exact diffs:
+
+- [app-crm/MIGRATION.md](VM3-Application-Server-2/app-crm/MIGRATION.md) - three one-line changes
+- [app-api/MIGRATION.md](VM2-Application-Server-1/app-api/MIGRATION.md) - six changes
+- app-inventory - blocked by Laravel 9, needs a framework upgrade
+
+After fixing the code, `git push` triggers Jenkins, which redeploys, and the
+report comes back green.
+
+If the upgrade goes wrong:
+
+```bash
+ansible-playbook playbooks/rollback-php.yml --limit vm3
+```
+
+---
+
+# Local development
+
+The applications also run locally with [Laravel Herd](https://herd.laravel.com),
+each on the PHP version it needs:
+
+```bash
+cd VM3-Application-Server-2/app-crm
+docker compose up -d mysql          # only the database
+
+cd src
+herd link app-crm
+herd isolate 7.4 --site=app-crm     # -> http://app-crm.test
+```
+
+Then point the check utility at the local sites:
+
+```bash
+cd python-monitor
+python3 infra_check.py --targets targets.local.json
+```
+
+Each application's `readme.md` has its own local setup section.
+
+---
+
+# Documentation
+
+| Document | What it covers |
+|---|---|
+| [docs/architecture.md](docs/architecture.md) | what each application does and what talks to what |
+| [VM1-Jenkins-Ansible-Git/ansible/readme.md](VM1-Jenkins-Ansible-Git/ansible/readme.md) | the playbooks, variables, how the code reaches the servers |
+| [VM1-Jenkins-Ansible-Git/jenkins/readme.md](VM1-Jenkins-Ansible-Git/jenkins/readme.md) | the two pipelines and how to set up the jobs |
+| [python-monitor/readme.md](python-monitor/readme.md) | the check utility, states, exit codes |
+| [monitoring/readme.md](monitoring/readme.md) | Prometheus, Grafana, what is scraped |
+| `*/readme.md` | one per application |
+| `*/MIGRATION.md` | the PHP 8 incompatibilities and their fixes |
+
+## A note on security
+
+This is a lab. The passwords are in the repository on purpose, so the whole
+estate can be brought up in one command, and two applications deliberately run
+frameworks that are out of support and carry open security advisories. **Do not
+put any of it on a public network.**

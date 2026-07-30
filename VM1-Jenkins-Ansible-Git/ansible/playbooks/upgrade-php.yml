@@ -1,0 +1,78 @@
+---
+- name: Upgrade the PHP version of the applications
+  hosts: application_servers
+
+  vars:
+    php_version: "8.3"
+    project_dir: /opt/devops-php-infrastructure
+    only_apps: []
+    health_retries: 12
+    health_delay: 5
+
+  tasks:
+    - name: Choose the applications to upgrade
+      ansible.builtin.set_fact:
+        selected_apps: "{{ apps if only_apps | length == 0 else apps | selectattr('name', 'in', only_apps) | list }}"
+
+    - name: Show what is going to be upgraded
+      ansible.builtin.debug:
+        msg: "{{ selected_apps | map(attribute='name') | join(', ') }} -> PHP {{ php_version }}"
+
+    - name: Save a backup of the Dockerfile
+      ansible.builtin.copy:
+        src: "{{ project_dir }}/{{ item.dir }}/docker/php/Dockerfile"
+        dest: "{{ project_dir }}/{{ item.dir }}/docker/php/Dockerfile.backup"
+        remote_src: true
+        mode: "0644"
+      loop: "{{ selected_apps }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Change the PHP version in the Dockerfile
+      ansible.builtin.replace:
+        path: "{{ project_dir }}/{{ item.dir }}/docker/php/Dockerfile"
+        regexp: '^FROM php:.*-fpm$'
+        replace: "FROM php:{{ php_version }}-fpm"
+      loop: "{{ selected_apps }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: dockerfiles
+
+    - name: Rebuild the containers that changed
+      ansible.builtin.command:
+        cmd: docker compose up -d --build
+        chdir: "{{ project_dir }}/{{ item.item.dir }}"
+      loop: "{{ dockerfiles.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+      when: item.changed
+      changed_when: true
+
+    - name: Wait for the applications to answer
+      ansible.builtin.uri:
+        url: "http://localhost:{{ item.port }}{{ item.health }}"
+        status_code: 200
+        timeout: 5
+      loop: "{{ selected_apps }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: health
+      retries: "{{ health_retries }}"
+      delay: "{{ health_delay }}"
+      until: health is success
+      failed_when: false
+
+    - name: Show the result for each application
+      ansible.builtin.debug:
+        msg: "{{ item.item.name }}: {{ 'OK' if item.status | default(0) == 200 else 'STILL DOWN' }}"
+      loop: "{{ health.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+
+    - name: Fail if an application is still down
+      ansible.builtin.fail:
+        msg: "{{ item.item.name }} is not answering after the upgrade (see the log of its container)"
+      loop: "{{ health.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+      when: item.status | default(0) != 200

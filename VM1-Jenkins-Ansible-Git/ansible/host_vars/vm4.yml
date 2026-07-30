@@ -1,0 +1,28 @@
+---
+apps:
+  - name: app-blog
+    dir: VM4-Application-Server-3/app-blog
+    port: 8081
+    health: /health
+    setup:
+      - composer install --no-dev --optimize-autoloader --no-interaction
+      - php artisan migrate --force
+      - php artisan config:clear
+
+  - name: app-file-manager
+    dir: VM4-Application-Server-3/app-file-manager
+    port: 8082
+    health: /health
+    setup:
+      - composer install --no-dev --optimize-autoloader --no-interaction
+      - php artisan migrate --force
+      - php artisan config:clear
+
+  - name: app-monitor
+    dir: VM4-Application-Server-3/app-monitor
+    port: 8083
+    health: /health
+    setup:
+      - composer install --no-dev --optimize-autoloader --no-interaction
+      - php artisan migrate --force
+      - php artisan config:clear

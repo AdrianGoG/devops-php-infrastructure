@@ -1,0 +1,18 @@
+{
+  
+  "servers": [],
+
+  "applications": [
+    { "name": "app-company-website", "server": "vm2", "url": "http://company-website.test/health" },
+    { "name": "app-user-dashboard",  "server": "vm2", "url": "http://app-user-dashboard.test/health" },
+    { "name": "app-api",             "server": "vm2", "url": "http://app-api.test/api/health" },
+
+    { "name": "app-crm",             "server": "vm3", "url": "http://app-crm.test/health.php" },
+    { "name": "app-inventory",       "server": "vm3", "url": "http://app-inventory.test/health" },
+    { "name": "app-ticket-system",   "server": "vm3", "url": "http://app-ticket-system.test/health" },
+
+    { "name": "app-blog",            "server": "vm4", "url": "http://app-blog.test/health" },
+    { "name": "app-file-manager",    "server": "vm4", "url": "http://app-file-manager.test/health" },
+    { "name": "app-monitor",         "server": "vm4", "url": "http://app-monitor.test/health" }
+  ]
+}

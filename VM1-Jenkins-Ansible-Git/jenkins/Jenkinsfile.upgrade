@@ -1,0 +1,129 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(
+            name: 'PHP_VERSION',
+            defaultValue: '8.3',
+            description: 'The PHP version to upgrade to'
+        )
+        choice(
+            name: 'SERVER',
+            choices: ['all', 'vm2', 'vm3', 'vm4'],
+            description: 'Which server to upgrade'
+        )
+        booleanParam(
+            name: 'ROLLBACK_IF_BROKEN',
+            defaultValue: false,
+            description: 'Put the old PHP version back if an application stops working'
+        )
+    }
+
+    environment {
+        ANSIBLE = 'VM1-Jenkins-Ansible-Git/ansible'
+        MONITOR = 'python-monitor/infra_check.py'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Check the servers') {
+            steps {
+                dir("${ANSIBLE}") {
+                    sh 'ansible-playbook playbooks/ping.yml'
+                }
+            }
+        }
+
+        stage('Status before the upgrade') {
+            steps {
+                sh(
+                    script: "python3 ${MONITOR} --report before.json",
+                    returnStatus: true
+                )
+            }
+        }
+
+        stage('Upgrade PHP with Ansible') {
+            steps {
+                dir("${ANSIBLE}") {
+                    script {
+                        def limit = params.SERVER == 'all' ? '' : "--limit ${params.SERVER}"
+
+                        sh """
+                            ansible-playbook playbooks/upgrade-php.yml \
+                                -e php_version=${params.PHP_VERSION} ${limit}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Status after the upgrade') {
+            steps {
+                script {
+                    def result = sh(
+                        script: "python3 ${MONITOR} --report after.json --compare before.json",
+                        returnStatus: true
+                    )
+
+                    if (result != 0) {
+                        // UNSTABLE, not FAILED: an application that breaks after
+                        // the upgrade is the expected outcome for the legacy
+                        // code, and the next step is to fix that code.
+                        currentBuild.result = 'UNSTABLE'
+                        echo 'Some applications are not working after the upgrade. See after.json.'
+                    } else {
+                        echo 'Every application is working after the upgrade.'
+                    }
+                }
+            }
+        }
+
+        stage('Rollback') {
+            when {
+                allOf {
+                    expression { currentBuild.result == 'UNSTABLE' }
+                    expression { params.ROLLBACK_IF_BROKEN }
+                }
+            }
+            steps {
+                dir("${ANSIBLE}") {
+                    script {
+                        def limit = params.SERVER == 'all' ? '' : "--limit ${params.SERVER}"
+
+                        sh "ansible-playbook playbooks/rollback-php.yml ${limit}"
+                    }
+                }
+
+                sh(script: "python3 ${MONITOR}", returnStatus: true)
+
+                echo 'The old PHP version was put back.'
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'before.json, after.json', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'python-monitor/logs/*.log', allowEmptyArchive: true
+        }
+
+        success {
+            echo "PHP ${params.PHP_VERSION} installed everywhere and every application answers."
+        }
+
+        unstable {
+            echo "PHP ${params.PHP_VERSION} installed, but some applications need their source code fixed."
+        }
+
+        failure {
+            echo 'The upgrade failed. Check the Ansible output above.'
+        }
+    }
+}

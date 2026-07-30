@@ -1,0 +1,93 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * app-api - command line utility.
+ *
+ * Used by the deployment stage of the Jenkins pipeline and during local setup:
+ *
+ *   php bin/console migrate   create the tables
+ *   php bin/console seed      load the infrastructure inventory
+ *   php bin/console fresh     drop, recreate and seed
+ *   php bin/console routes    list the registered endpoints
+ *   php bin/console request   run a request through the kernel without a server
+ */
+
+declare(strict_types=1);
+
+use App\Core\Config;
+use App\Core\Database;
+use App\Core\Kernel;
+use App\Core\Request;
+use App\Database\Schema;
+use App\Database\Seeder;
+
+if (PHP_SAPI !== 'cli') {
+    fwrite(STDERR, 'bin/console must be run from the command line.' . PHP_EOL);
+    exit(1);
+}
+
+$basePath = dirname(__DIR__);
+
+require $basePath . '/vendor/autoload.php';
+
+$kernel = new Kernel($basePath);
+$container = $kernel->container();
+
+// Fail with an actionable message when the MySQL service of the stack is down,
+// instead of a bare PDO connection error.
+try {
+    if (in_array(isset($argv[1]) ? $argv[1] : '', ['migrate', 'seed', 'fresh'], true)) {
+        Database::assertReachable(Config::load($basePath));
+    }
+} catch (RuntimeException $exception) {
+    fwrite(STDERR, $exception->getMessage() . PHP_EOL);
+    exit(1);
+}
+
+$command = isset($argv[1]) ? (string) $argv[1] : 'help';
+
+switch ($command) {
+    case 'migrate':
+        $tables = (new Schema($container->database()))->create();
+        fwrite(STDOUT, 'Tables ready: ' . implode(', ', $tables) . PHP_EOL);
+        break;
+
+    case 'seed':
+        $counts = (new Seeder($container->database()))->run();
+
+        foreach ($counts as $table => $rows) {
+            fwrite(STDOUT, sprintf('  %-14s %d rows' . PHP_EOL, $table, $rows));
+        }
+
+        fwrite(STDOUT, 'Inventory loaded.' . PHP_EOL);
+        break;
+
+    case 'fresh':
+        (new Schema($container->database()))->fresh();
+        $counts = (new Seeder($container->database()))->run();
+
+        fwrite(STDOUT, 'Schema recreated and seeded: ' . json_encode($counts) . PHP_EOL);
+        break;
+
+    case 'routes':
+        foreach ($kernel->router()->definitions() as $route) {
+            fwrite(STDOUT, sprintf('  %-6s %s' . PHP_EOL, $route['method'], $route['pattern']));
+        }
+        break;
+
+    case 'request':
+        $method = isset($argv[2]) ? (string) $argv[2] : 'GET';
+        $path = isset($argv[3]) ? (string) $argv[3] : '/';
+
+        $response = $kernel->handle(Request::create($method, $path));
+
+        fwrite(STDOUT, 'HTTP ' . $response->status() . PHP_EOL . $response->body() . PHP_EOL);
+
+        exit($response->status() < 400 ? 0 : 1);
+
+    case 'help':
+    default:
+        fwrite(STDOUT, 'Usage: php bin/console [migrate|seed|fresh|routes|request METHOD PATH]' . PHP_EOL);
+        break;
+}
