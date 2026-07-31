@@ -121,9 +121,9 @@
       when: item.rc == 0 and not skip_setup and (after_upgrade or not (item.item.blocked | default(false)))
       changed_when: true
 
-    - name: Restart php so it picks up the new code
+    - name: Restart php and nginx so they pick up the new code and configuration
       ansible.builtin.command:
-        cmd: docker compose restart php
+        cmd: docker compose restart php nginx
         chdir: "{{ project_dir }}/{{ item.dir }}"
       loop: "{{ selected_apps }}"
       loop_control:
