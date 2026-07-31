@@ -85,11 +85,25 @@ sudo apt install -y git ansible rsync python3-pip docker.io docker-compose-v2
 ```bash
 sudo apt install -y docker.io docker-compose-v2 rsync
 sudo usermod -aG docker $USER      # then log out and back in
+
+sudo mkdir -p /opt/devops-php-infrastructure /opt/monitoring
+sudo chown -R $USER:$USER /opt/devops-php-infrastructure /opt/monitoring
 ```
 
 `docker compose version` (with a space) has to answer on all four machines - the
 playbooks use the v2 syntax. `rsync` has to be installed on VM1 **and** on the
 three servers, because that is how the code is distributed.
+
+Those two folders are the only thing on the servers that needs root, and they
+need it exactly once. After the `chown`, **no playbook uses `become`** and the
+deployment never asks for a sudo password - which is what makes it possible to
+run it from Jenkins, unattended. Check it with:
+
+```bash
+touch /opt/devops-php-infrastructure/.write-test && rm /opt/devops-php-infrastructure/.write-test
+```
+
+If that fails, everything after it fails too.
 
 ## 2. SSH keys
 
@@ -131,11 +145,49 @@ ansible-playbook playbooks/ping.yml
 
 Everything below runs on VM1, from `VM1-Jenkins-Ansible-Git/ansible`.
 
-## 5. Deploy VM2 and VM3
+## 5. Which applications can be set up, and which cannot
+
+Composer refuses to install on a PHP version that does not satisfy
+`composer.json`, so `composer install` cannot run for four of the nine
+applications until PHP is raised. They are deployed with `-e skip_setup=true`:
+the files are copied and the containers are started, but the dependencies are
+not installed.
+
+| Application | PHP in the container | `composer.json` requires | Full setup? |
+|---|---|---|---|
+| app-api | 7.4 | `^7.2` | yes |
+| app-user-dashboard | 8.2 | `^8.2` | yes |
+| app-crm | 7.4 | - | yes |
+| app-inventory | 8.0 | `^8.0` | yes |
+| app-ticket-system | 8.1 | `^8.1` | yes |
+| **app-company-website** | 8.2 | `^8.3` | **no - skip_setup** |
+| **app-blog** | 8.2 | `^8.3` | **no - skip_setup** |
+| **app-file-manager** | 8.2 | `^8.3` | **no - skip_setup** |
+| **app-monitor** | 8.2 | `^8.3` | **no - skip_setup** |
+
+Those four are the ones the PHP upgrade fixes. They stay down on purpose until
+then - that is the "before" the upgrade is measured against.
+
+## 6. Deploy
+
+**VM2** - two of the three applications get the full treatment, the third only
+its files:
 
 ```bash
-ansible-playbook playbooks/deploy.yml --limit vm2
+ansible-playbook playbooks/deploy.yml --limit vm2 -e '{"only_apps":["app-user-dashboard","app-api"]}'
+ansible-playbook playbooks/deploy.yml --limit vm2 -e '{"only_apps":["app-company-website"]}' -e skip_setup=true
+```
+
+**VM3** - everything works on its current PHP version:
+
+```bash
 ansible-playbook playbooks/deploy.yml --limit vm3
+```
+
+**VM4** - all three are blocked, so files and containers only:
+
+```bash
+ansible-playbook playbooks/deploy.yml --limit vm4 -e skip_setup=true
 ```
 
 For each application the playbook copies the folder with rsync, creates `.env`
@@ -149,19 +201,27 @@ Nothing has to be copied by hand and `docker build` never has to be run:
 The first run takes a few minutes - the `php`, `nginx` and `mysql` images are
 downloaded and the PHP images are built. Later runs take seconds.
 
-## 6. Deploy VM4 - two passes
+**The two `skip_setup` commands end in red**, on `Fail if an application is not
+answering`. That is the health gate doing its job: the containers are up, the
+application is not. Five applications answering and four not is the correct state
+before the upgrade.
 
-The three applications on VM4 run Laravel 13 on PHP 8.2, and Composer refuses to
-install on a PHP version that does not satisfy `composer.json`. So: copy the
-files, raise PHP, then deploy properly.
+## 7. The upgrade - what the whole project is about
 
 ```bash
-ansible-playbook playbooks/deploy.yml --limit vm4 -e skip_setup=true
 ansible-playbook playbooks/upgrade-php.yml --limit vm4
 ansible-playbook playbooks/deploy.yml --limit vm4
 ```
 
-## 7. Set the real passwords
+The first command rewrites `FROM php:8.2-fpm` to `php:8.3-fpm` in each
+`docker/php/Dockerfile` and rebuilds. The second one now succeeds where it could
+not before: Composer is satisfied, the dependencies install, the applications
+answer. Same two commands for `app-company-website` on VM2.
+
+Run [`python-monitor/infra_check.py`](python-monitor/infra_check.py) before and
+after - the difference between the two reports is the result.
+
+## 8. Set the real passwords
 
 `.env.example` ships with the same credentials as `docker-compose.yml`, so the
 first deployment works as it is. Before anything is reachable from outside the
@@ -173,7 +233,7 @@ nano /opt/devops-php-infrastructure/VM2-Application-Server-1/app-api/src/.env
 
 `.env` is never overwritten by a later deployment.
 
-## 8. Monitoring
+## 9. Monitoring
 
 ```bash
 cd ~/devops-php-infrastructure/monitoring
@@ -189,7 +249,7 @@ ansible-playbook playbooks/monitoring.yml
 The dashboard and the datasource are provisioned from files; there is nothing to
 click through.
 
-## 9. Jenkins
+## 10. Jenkins
 
 ```bash
 sudo apt install -y openjdk-17-jre

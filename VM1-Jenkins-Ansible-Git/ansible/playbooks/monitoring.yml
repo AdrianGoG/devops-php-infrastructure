@@ -12,7 +12,6 @@
         path: "{{ monitoring_dir }}"
         state: directory
         mode: "0755"
-      become: true
 
     - name: Copy the node_exporter compose file
       ansible.builtin.copy:

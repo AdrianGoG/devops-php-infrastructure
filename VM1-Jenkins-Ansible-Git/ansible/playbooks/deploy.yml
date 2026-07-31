@@ -39,7 +39,6 @@
       loop: "{{ selected_apps }}"
       loop_control:
         label: "{{ item.name }}"
-      become: true
 
     - name: Copy the files with rsync
       ansible.posix.synchronize:
@@ -90,7 +89,7 @@
       loop: "{{ appkey.results }}"
       loop_control:
         label: "{{ item.item.name }}"
-      when: item.rc == 0
+      when: item.rc == 0 and not skip_setup
       changed_when: true
 
     - name: Run the setup commands inside the php container
