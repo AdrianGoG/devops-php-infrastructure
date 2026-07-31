@@ -71,9 +71,19 @@
         label: "{{ item.name }}"
       changed_when: true
 
-    - name: Look for an empty application key
+    - name: Run the setup commands inside the php container
       ansible.builtin.command:
-        cmd: grep -q "^APP_KEY=$" src/.env
+        cmd: docker compose exec -T php {{ item.1 }}
+        chdir: "{{ project_dir }}/{{ item.0.dir }}"
+      loop: "{{ selected_apps | subelements('setup', skip_missing=true) }}"
+      loop_control:
+        label: "{{ item.0.name }}: {{ item.1 }}"
+      when: not skip_setup
+      changed_when: true
+
+    - name: Look for a Laravel application without an application key
+      ansible.builtin.shell:
+        cmd: test -f src/artisan && grep -q '^APP_KEY=$' src/.env
         chdir: "{{ project_dir }}/{{ item.dir }}"
       loop: "{{ selected_apps }}"
       loop_control:
@@ -90,16 +100,6 @@
       loop_control:
         label: "{{ item.item.name }}"
       when: item.rc == 0 and not skip_setup
-      changed_when: true
-
-    - name: Run the setup commands inside the php container
-      ansible.builtin.command:
-        cmd: docker compose exec -T php {{ item.1 }}
-        chdir: "{{ project_dir }}/{{ item.0.dir }}"
-      loop: "{{ selected_apps | subelements('setup', skip_missing=true) }}"
-      loop_control:
-        label: "{{ item.0.name }}: {{ item.1 }}"
-      when: not skip_setup
       changed_when: true
 
     - name: Restart php so it picks up the new code
