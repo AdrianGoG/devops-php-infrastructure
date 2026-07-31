@@ -117,6 +117,32 @@ Served on <http://localhost:8082> (or `http://192.168.0.159:8082` on VM3). The
 MySQL container publishes port **33065** on the host and creates two databases on
 first boot: `inventory` and `inventory_test`.
 
+### The first line of the Dockerfile
+
+```dockerfile
+RUN echo 1 > /var/lib/dpkg/info/format
+```
+
+That line is not decoration. `php:8.0-fpm` was last published in November 2023,
+when PHP 8.0 went out of support, and it ships with `/var/lib/dpkg/info/format`
+truncated to zero bytes. Any `apt-get install` inside it dies with:
+
+```
+dpkg: error: corrupt info database format file '/var/lib/dpkg/info/format'
+E: Sub-process /usr/bin/dpkg returned an error code (2)
+```
+
+The file is supposed to contain `1` - the version of the dpkg info database
+format. Writing it back is the whole fix. This is the only image in the estate
+with the problem: `7.4` (buster), `8.1`, `8.2` and `8.3` (bookworm) all build
+cleanly.
+
+It is also a fair illustration of what this project is about. An abandoned base
+image does not stay frozen in a working state - it rots, and one day a build that
+worked last year stops working for a reason that has nothing to do with your
+code. The answer is to stop depending on it, which is exactly what the upgrade
+does.
+
 ## Local development
 
 ```bash

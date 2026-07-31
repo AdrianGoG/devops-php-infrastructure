@@ -5,11 +5,17 @@
   vars:
     project_dir: /opt/devops-php-infrastructure
     only_apps: []
+    only_blocked: false
 
   tasks:
     - name: Choose the applications to roll back
       ansible.builtin.set_fact:
         selected_apps: "{{ apps if only_apps | length == 0 else apps | selectattr('name', 'in', only_apps) | list }}"
+
+    - name: Keep only the applications the upgrade was meant to unblock
+      ansible.builtin.set_fact:
+        selected_apps: "{{ selected_apps | selectattr('blocked', 'defined') | selectattr('blocked') | list }}"
+      when: only_blocked
 
     - name: Look for the backups
       ansible.builtin.stat:
