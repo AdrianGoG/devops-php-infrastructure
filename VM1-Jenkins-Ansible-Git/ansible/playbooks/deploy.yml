@@ -22,6 +22,9 @@
     health_retries: 12
     health_delay: 5
 
+    setup_retries: 6
+    setup_delay: 10
+
   tasks:
     - name: Choose the applications to deploy
       ansible.builtin.set_fact:
@@ -80,6 +83,10 @@
         label: "{{ item.0.name }}: {{ item.1 }}"
       when: not skip_setup
       changed_when: true
+      register: setup
+      retries: "{{ setup_retries }}"
+      delay: "{{ setup_delay }}"
+      until: setup is success
 
     - name: Look for a Laravel application without an application key
       ansible.builtin.shell:
