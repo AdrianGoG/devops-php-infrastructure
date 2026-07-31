@@ -58,10 +58,28 @@
         dest: "{{ project_dir }}/{{ item.dir }}/src/.env"
         remote_src: true
         force: false
-        mode: "0640"
+        mode: "0644"
       loop: "{{ selected_apps }}"
       loop_control:
         label: "{{ item.name }}"
+
+    - name: Create the writable folders and open them to php-fpm
+      ansible.builtin.shell: |
+        cd {{ project_dir }}/{{ item.dir }}/src
+        [ -f .env ] && chmod 0644 .env
+        if [ -f artisan ]; then
+          mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache
+        elif [ -d storage ]; then
+          mkdir -p storage/logs
+        fi
+        for d in storage bootstrap/cache; do
+          [ -d "$d" ] && chmod -R 0777 "$d"
+        done
+        exit 0
+      loop: "{{ selected_apps }}"
+      loop_control:
+        label: "{{ item.name }}"
+      changed_when: true
 
     - name: Start the containers
       ansible.builtin.command:
