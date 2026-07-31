@@ -37,8 +37,8 @@ cd monitoring
 docker compose up -d
 ```
 
-- Prometheus: <http://192.168.0.170:9090> - well, on VM1's address, port 9090
-- Grafana: port 3000, user `admin`, password `admin`
+- Prometheus: <http://192.168.0.106:9090> - VM1's address, port 9090
+- Grafana: <http://192.168.0.106:3000>, user `admin`, password `admin`
 
 **Change the Grafana password** in `docker-compose.yml` before this is reachable
 by anyone else.

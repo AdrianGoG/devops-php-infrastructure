@@ -15,9 +15,9 @@
 |
 */
 
-$vm2 = env('ESTATE_BASE_VM2', 'http://192.168.0.170');
-$vm3 = env('ESTATE_BASE_VM3', 'http://192.168.0.171');
-$vm4 = env('ESTATE_BASE_VM4', 'http://192.168.0.172');
+$vm2 = env('ESTATE_BASE_VM2', 'http://192.168.0.169');
+$vm3 = env('ESTATE_BASE_VM3', 'http://192.168.0.159');
+$vm4 = env('ESTATE_BASE_VM4', 'http://192.168.0.125');
 
 return [
 

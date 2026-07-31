@@ -236,9 +236,9 @@
 <pre class="terminal-body"><span class="c-prompt">$</span> python3 infra_check.py
 
 <span class="c-dim">── connectivity ──────────────────────</span>
-vm2  192.168.0.170   <span class="c-ok">reachable</span>   1.8 ms
-vm3  192.168.0.171   <span class="c-ok">reachable</span>   2.1 ms
-vm4  192.168.0.172   <span class="c-ok">reachable</span>   2.4 ms
+vm2  192.168.0.169   <span class="c-ok">reachable</span>   1.8 ms
+vm3  192.168.0.159   <span class="c-ok">reachable</span>   2.1 ms
+vm4  192.168.0.125   <span class="c-ok">reachable</span>   2.4 ms
 
 <span class="c-dim">── applications ──────────────────────</span>
 app-company-website   <span class="c-ok">200</span>   <span class="c-dim">84 ms</span>

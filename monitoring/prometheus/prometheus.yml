@@ -13,26 +13,26 @@ scrape_configs:
       - targets: ['node-exporter:9100']
         labels:
           server: vm1
-      - targets: ['192.168.0.170:9100']
+      - targets: ['192.168.0.169:9100']
         labels:
           server: vm2
-      - targets: ['192.168.0.171:9100']
+      - targets: ['192.168.0.159:9100']
         labels:
           server: vm3
-      - targets: ['192.168.0.172:9100']
+      - targets: ['192.168.0.125:9100']
         labels:
           server: vm4
 
   - job_name: 'estate'
     metrics_path: /metrics
     static_configs:
-      - targets: ['192.168.0.172:8083']
+      - targets: ['192.168.0.125:8083']
         labels:
           application: app-monitor
 
   - job_name: 'registry'
     metrics_path: /metrics
     static_configs:
-      - targets: ['192.168.0.170:8083']
+      - targets: ['192.168.0.169:8083']
         labels:
           application: app-api

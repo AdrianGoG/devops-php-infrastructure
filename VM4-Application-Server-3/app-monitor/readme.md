@@ -68,9 +68,9 @@ visible immediately.
 from the three server addresses:
 
 ```dotenv
-ESTATE_BASE_VM2=http://192.168.0.170
-ESTATE_BASE_VM3=http://192.168.0.171
-ESTATE_BASE_VM4=http://192.168.0.172
+ESTATE_BASE_VM2=http://192.168.0.169
+ESTATE_BASE_VM3=http://192.168.0.159
+ESTATE_BASE_VM4=http://192.168.0.125
 ESTATE_TIMEOUT=3
 ESTATE_CACHE_SECONDS=10
 ```
@@ -127,7 +127,7 @@ scrape_configs:
     metrics_path: /metrics
     scrape_interval: 30s
     static_configs:
-      - targets: ['192.168.0.172:8083']
+      - targets: ['192.168.0.125:8083']
 ```
 
 One target gives Prometheus the availability of all nine applications, because

@@ -115,7 +115,7 @@ docker compose exec php php artisan key:generate
 docker compose exec php php artisan migrate --force
 ```
 
-Served on <http://localhost:8082> (or `http://192.168.0.172:8082` on VM4) - once
+Served on <http://localhost:8082> (or `http://192.168.0.125:8082` on VM4) - once
 the PHP version is raised to 8.3. The MySQL container publishes port **33068**.
 
 ## Local development

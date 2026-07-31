@@ -48,7 +48,7 @@
 
   <span class="c-key">environment</span> {
     APP  = <span class="c-str">'app-company-website'</span>
-    HOST = <span class="c-str">'192.168.0.170'</span>
+    HOST = <span class="c-str">'192.168.0.169'</span>
   }
 
   <span class="c-key">triggers</span> { githubPush() }

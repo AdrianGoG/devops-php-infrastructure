@@ -24,7 +24,7 @@ class DashboardTest extends TestCase
                 [
                     'key' => 'vm2',
                     'name' => 'VM2 - Application Server 1',
-                    'host' => '192.168.0.170',
+                    'host' => '192.168.0.169',
                     'is_controller' => false,
                     'applications_count' => 3,
                 ],
@@ -37,7 +37,7 @@ class DashboardTest extends TestCase
                     'php_version' => '7.4',
                     'port' => 8083,
                     'status' => 'legacy',
-                    'url' => 'http://192.168.0.170:8083',
+                    'url' => 'http://192.168.0.169:8083',
                 ],
                 [
                     'name' => 'app-company-website',
@@ -46,7 +46,7 @@ class DashboardTest extends TestCase
                     'php_version' => '8.3',
                     'port' => 8081,
                     'status' => 'ok',
-                    'url' => 'http://192.168.0.170:8081',
+                    'url' => 'http://192.168.0.169:8081',
                 ],
             ]]),
             '*/api/deployments*' => Http::response(['data' => [

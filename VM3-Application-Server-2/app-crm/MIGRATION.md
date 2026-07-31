@@ -118,7 +118,7 @@ Then, in order:
 5. Update the registry so the estate reflects reality:
 
 ```bash
-curl -X POST http://192.168.0.170:8083/api/deployments \
+curl -X POST http://192.168.0.169:8083/api/deployments \
   -H "X-API-Key: $API_KEY" -H 'Content-Type: application/json' \
   -d '{"application":"app-crm","result":"success","branch":"development","notes":"Migrated to PHP 8.3"}'
 ```

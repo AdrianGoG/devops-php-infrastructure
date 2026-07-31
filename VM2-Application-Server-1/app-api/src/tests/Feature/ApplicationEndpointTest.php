@@ -81,7 +81,7 @@ class ApplicationEndpointTest extends ApiTestCase
         $this->assertSame('7.4', $data['php_version']);
         $this->assertSame(8083, $data['port']);
         $this->assertSame('legacy', $data['status']);
-        $this->assertSame('http://192.168.0.170:8083', $data['url']);
+        $this->assertSame('http://192.168.0.169:8083', $data['url']);
     }
 
     public function test_a_single_application_includes_its_recent_deployments(): void

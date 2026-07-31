@@ -57,7 +57,7 @@ class ServerEndpointTest extends ApiTestCase
 
         $data = $response->decoded()['data'];
 
-        $this->assertSame('192.168.0.170', $data['host']);
+        $this->assertSame('192.168.0.169', $data['host']);
         $this->assertContains('app-api', $data['applications']);
     }
 

@@ -54,6 +54,23 @@ Every application folder has the same shape: `docker-compose.yml`,
 
 # Installation
 
+## The machines
+
+| | Role | Address | User |
+|---|---|---|---|
+| VM1 | control node - Git, Jenkins, Ansible, Prometheus, Grafana | 192.168.0.106 | bartikus |
+| VM2 | application server 1 | 192.168.0.169 | verloc |
+| VM3 | application server 2 | 192.168.0.159 | blackwell |
+| VM4 | application server 3 | 192.168.0.125 | cortana |
+
+These addresses appear in
+[`VM1-Jenkins-Ansible-Git/ansible/inventory.ini`](VM1-Jenkins-Ansible-Git/ansible/inventory.ini),
+[`python-monitor/targets.json`](python-monitor/targets.json),
+[`monitoring/prometheus/prometheus.yml`](monitoring/prometheus/prometheus.yml) and
+in the `.env.example` of each application. Give the four machines **static
+addresses** - a DHCP lease that expires halfway through a demo means editing all
+four places again.
+
 ## 1. What each machine needs
 
 **VM1 - control node**
@@ -80,9 +97,9 @@ Only VM1 talks to the servers, and it does it over SSH:
 
 ```bash
 ssh-keygen -t ed25519
-ssh-copy-id verloc@192.168.0.170
-ssh-copy-id blackwell@192.168.0.171
-ssh-copy-id cortana@192.168.0.172
+ssh-copy-id verloc@192.168.0.169
+ssh-copy-id blackwell@192.168.0.159
+ssh-copy-id cortana@192.168.0.125
 ```
 
 The users and addresses are in
@@ -166,8 +183,8 @@ cd ../VM1-Jenkins-Ansible-Git/ansible
 ansible-playbook playbooks/monitoring.yml
 ```
 
-- Prometheus on VM1, port **9090** - `/targets` should show everything UP
-- Grafana on VM1, port **3000**, user `admin`, password `admin` - **change it**
+- Prometheus: <http://192.168.0.106:9090> - `/targets` should show everything UP
+- Grafana: <http://192.168.0.106:3000>, user `admin`, password `admin` - **change it**
 
 The dashboard and the datasource are provisioned from files; there is nothing to
 click through.
@@ -183,7 +200,7 @@ The `jenkins` user needs its own SSH keys to the servers, and access to Docker:
 
 ```bash
 sudo -u jenkins ssh-keygen -t ed25519
-sudo -u jenkins ssh-copy-id verloc@192.168.0.170      # and the other two
+sudo -u jenkins ssh-copy-id verloc@192.168.0.169      # and the other two
 sudo usermod -aG docker jenkins
 sudo systemctl restart jenkins
 ```
@@ -212,9 +229,9 @@ python3 infra_check.py
 ```
   Infrastructure report - 31.07.2026 10:14:22
   ----------------------------------------------------------------------
-  vm2    192.168.0.170    reachable
-  vm3    192.168.0.171    reachable
-  vm4    192.168.0.172    reachable
+  vm2    192.168.0.169    reachable
+  vm3    192.168.0.159    reachable
+  vm4    192.168.0.125    reachable
   ----------------------------------------------------------------------
   application           srv   php      code   time     state
   app-company-website   vm2   8.2      500    12 ms    error

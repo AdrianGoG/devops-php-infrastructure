@@ -107,12 +107,12 @@ docker compose exec php php artisan migrate --force
 docker compose exec php php artisan db:seed --force
 ```
 
-Served on <http://localhost:8082> (or `http://192.168.0.170:8082` on VM2). The
+Served on <http://localhost:8082> (or `http://192.168.0.169:8082` on VM2). The
 MySQL container publishes port **33062** on the host and creates two databases on
 first boot: `user_dashboard` and `user_dashboard_test`.
 
 Set `REGISTRY_BASE_URL` in `src/.env` to wherever app-api answers. On VM2 that is
-`http://192.168.0.170:8083`.
+`http://192.168.0.169:8083`.
 
 ## Local development
 

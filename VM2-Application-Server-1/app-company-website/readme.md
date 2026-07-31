@@ -92,7 +92,7 @@ docker compose exec php php artisan key:generate
 docker compose exec php php artisan migrate --force
 ```
 
-The site is then served on <http://localhost:8081> (or `http://192.168.0.170:8081` on VM2).
+The site is then served on <http://localhost:8081> (or `http://192.168.0.169:8081` on VM2).
 
 To use the `mysql` service of the stack instead of SQLite, set this in `src/.env`:
 

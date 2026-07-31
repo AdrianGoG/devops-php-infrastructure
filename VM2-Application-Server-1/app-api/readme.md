@@ -48,7 +48,7 @@ credential.
 ### Example: the health contract
 
 ```bash
-curl -s http://192.168.0.170:8083/api/health
+curl -s http://192.168.0.169:8083/api/health
 ```
 
 ```json
@@ -71,7 +71,7 @@ incompatibility #4 of the migration dossier, and it flips to `false` on PHP 8.
 ### Example: what Jenkins posts at the end of the pipeline
 
 ```bash
-curl -X POST http://192.168.0.170:8083/api/deployments \
+curl -X POST http://192.168.0.169:8083/api/deployments \
   -H "X-API-Key: $API_KEY" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -148,7 +148,7 @@ docker compose exec php php bin/console migrate
 docker compose exec php php bin/console seed
 ```
 
-The API is then served on <http://localhost:8083> (or `http://192.168.0.170:8083`
+The API is then served on <http://localhost:8083> (or `http://192.168.0.169:8083`
 on VM2). Set a real `API_KEY` in `src/.env` before exposing it.
 
 The MySQL container publishes port **33063** on the host and creates two
