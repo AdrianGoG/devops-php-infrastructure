@@ -7,6 +7,7 @@
     project_dir: /opt/devops-php-infrastructure
     only_apps: []
     skip_setup: false
+    after_upgrade: false
 
     rsync_excludes:
       - .git
@@ -21,9 +22,6 @@
 
     health_retries: 12
     health_delay: 5
-
-    setup_retries: 6
-    setup_delay: 10
 
   tasks:
     - name: Choose the applications to deploy
@@ -81,12 +79,8 @@
       loop: "{{ selected_apps | subelements('setup', skip_missing=true) }}"
       loop_control:
         label: "{{ item.0.name }}: {{ item.1 }}"
-      when: not skip_setup
+      when: not skip_setup and (after_upgrade or not (item.0.blocked | default(false)))
       changed_when: true
-      register: setup
-      retries: "{{ setup_retries }}"
-      delay: "{{ setup_delay }}"
-      until: setup is success
 
     - name: Look for a Laravel application without an application key
       ansible.builtin.shell:
@@ -106,7 +100,7 @@
       loop: "{{ appkey.results }}"
       loop_control:
         label: "{{ item.item.name }}"
-      when: item.rc == 0 and not skip_setup
+      when: item.rc == 0 and not skip_setup and (after_upgrade or not (item.item.blocked | default(false)))
       changed_when: true
 
     - name: Restart php so it picks up the new code
@@ -134,7 +128,11 @@
 
     - name: Show the result for each application
       ansible.builtin.debug:
-        msg: "{{ item.item.name }}: {{ 'OK' if item.status | default(0) == 200 else 'NOT ANSWERING' }}"
+        msg: >-
+          {{ item.item.name }}:
+          {{ 'OK' if item.status | default(0) == 200
+             else ('DOWN - blocked by the PHP version, expected until the upgrade'
+                   if item.item.blocked | default(false) else 'NOT ANSWERING') }}
       loop: "{{ health.results }}"
       loop_control:
         label: "{{ item.item.name }}"
@@ -145,4 +143,6 @@
       loop: "{{ health.results }}"
       loop_control:
         label: "{{ item.item.name }}"
-      when: item.status | default(0) != 200
+      when:
+        - item.status | default(0) != 200
+        - after_upgrade or not (item.item.blocked | default(false))

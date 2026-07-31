@@ -149,9 +149,10 @@ Everything below runs on VM1, from `VM1-Jenkins-Ansible-Git/ansible`.
 
 Composer refuses to install on a PHP version that does not satisfy
 `composer.json`, so `composer install` cannot run for four of the nine
-applications until PHP is raised. They are deployed with `-e skip_setup=true`:
-the files are copied and the containers are started, but the dependencies are
-not installed.
+applications until PHP is raised. Those four carry `blocked: true` in
+[`host_vars`](VM1-Jenkins-Ansible-Git/ansible/host_vars/): the playbook copies
+their files and starts their containers, but skips the dependencies, the key
+generation and the health gate. Nothing has to be passed on the command line.
 
 | Application | PHP in the container | `composer.json` requires | Full setup? |
 |---|---|---|---|
@@ -160,35 +161,24 @@ not installed.
 | app-crm | 7.4 | - | yes |
 | app-inventory | 8.0 | `^8.0` | yes |
 | app-ticket-system | 8.1 | `^8.1` | yes |
-| **app-company-website** | 8.2 | `^8.3` | **no - skip_setup** |
-| **app-blog** | 8.2 | `^8.3` | **no - skip_setup** |
-| **app-file-manager** | 8.2 | `^8.3` | **no - skip_setup** |
-| **app-monitor** | 8.2 | `^8.3` | **no - skip_setup** |
+| **app-company-website** | 8.2 | `^8.3` | **no - `blocked`** |
+| **app-blog** | 8.2 | `^8.3` | **no - `blocked`** |
+| **app-file-manager** | 8.2 | `^8.3` | **no - `blocked`** |
+| **app-monitor** | 8.2 | `^8.3` | **no - `blocked`** |
 
 Those four are the ones the PHP upgrade fixes. They stay down on purpose until
 then - that is the "before" the upgrade is measured against.
 
 ## 6. Deploy
 
-**VM2** - two of the three applications get the full treatment, the third only
-its files:
-
 ```bash
-ansible-playbook playbooks/deploy.yml --limit vm2 -e '{"only_apps":["app-user-dashboard","app-api"]}'
-ansible-playbook playbooks/deploy.yml --limit vm2 -e '{"only_apps":["app-company-website"]}' -e skip_setup=true
-```
-
-**VM3** - everything works on its current PHP version:
-
-```bash
+ansible-playbook playbooks/deploy.yml --limit vm2
 ansible-playbook playbooks/deploy.yml --limit vm3
+ansible-playbook playbooks/deploy.yml --limit vm4
 ```
 
-**VM4** - all three are blocked, so files and containers only:
-
-```bash
-ansible-playbook playbooks/deploy.yml --limit vm4 -e skip_setup=true
-```
+One command per server. The `blocked` applications are handled by the playbook,
+so nothing has to be selected by hand.
 
 For each application the playbook copies the folder with rsync, creates `.env`
 from `.env.example` if it does not exist, runs `docker compose up -d`, generates
@@ -201,22 +191,43 @@ Nothing has to be copied by hand and `docker build` never has to be run:
 The first run takes a few minutes - the `php`, `nginx` and `mysql` images are
 downloaded and the PHP images are built. Later runs take seconds.
 
-**The two `skip_setup` commands end in red**, on `Fail if an application is not
-answering`. That is the health gate doing its job: the containers are up, the
-application is not. Five applications answering and four not is the correct state
-before the upgrade.
+All three end green. The report at the end names the four blocked applications
+explicitly:
+
+```
+app-company-website: DOWN - blocked by the PHP version, expected until the upgrade
+app-user-dashboard: OK
+app-api: OK
+```
+
+Five applications answering and four not is the correct state before the upgrade.
 
 ## 7. The upgrade - what the whole project is about
 
 ```bash
-ansible-playbook playbooks/upgrade-php.yml --limit vm4
-ansible-playbook playbooks/deploy.yml --limit vm4
+ansible-playbook playbooks/upgrade-php.yml --limit vm4 -e only_blocked=true
+ansible-playbook playbooks/deploy.yml --limit vm4 -e after_upgrade=true
 ```
 
 The first command rewrites `FROM php:8.2-fpm` to `php:8.3-fpm` in each
-`docker/php/Dockerfile` and rebuilds. The second one now succeeds where it could
-not before: Composer is satisfied, the dependencies install, the applications
-answer. Same two commands for `app-company-website` on VM2.
+`docker/php/Dockerfile` and rebuilds. The second one ignores the `blocked` flag -
+that is what `after_upgrade=true` means - and now succeeds where it could not
+before: Composer is satisfied, the dependencies install, the applications answer.
+The health gate is armed again, so if one of them still fails, the playbook says
+so.
+
+Same two commands for `app-company-website` on VM2:
+
+```bash
+ansible-playbook playbooks/upgrade-php.yml --limit vm2 -e only_blocked=true
+ansible-playbook playbooks/deploy.yml --limit vm2 -e after_upgrade=true
+```
+
+`only_blocked=true` restricts the upgrade to the applications marked `blocked` -
+on VM2 that is `app-company-website` alone, leaving `app-api` on PHP 7.4 where it
+belongs for now. Raising *that* one is the other half of the story: it is the
+application that needs code changes, not just a newer runtime. See
+[app-api/MIGRATION.md](VM2-Application-Server-1/app-api/MIGRATION.md).
 
 Run [`python-monitor/infra_check.py`](python-monitor/infra_check.py) before and
 after - the difference between the two reports is the result.
