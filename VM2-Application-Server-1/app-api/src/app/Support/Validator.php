@@ -106,6 +106,14 @@ class Validator
             return count($value) === 0;
         }
 
+        // LEGACY: null reaches trim() and strlen(), deprecated since PHP 8.1.
         return strlen(trim($value)) === 0;
+
+        // MIGRATION FIX #6
+        // if ($value === null) {
+        //     return true;
+        // }
+        //
+        // return strlen(trim((string) $value)) === 0;
     }
 }

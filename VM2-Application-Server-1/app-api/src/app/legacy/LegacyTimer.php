@@ -34,6 +34,12 @@ class LegacyTimer
         $this->startedAt = microtime(true);
     }
 
+    // MIGRATION FIX #4
+    // public function __construct()
+    // {
+    //     $this->startedAt = microtime(true);
+    // }
+
     /**
      * Seconds elapsed since the timer was created.
      *

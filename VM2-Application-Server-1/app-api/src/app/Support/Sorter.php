@@ -33,6 +33,11 @@ class Sorter
 
         usort($rows, $comparator);
 
+        // MIGRATION FIX #2
+        // usort($rows, function (array $a, array $b) use ($field) {
+        //     return strcmp((string) $a[$field], (string) $b[$field]);
+        // });
+
         return $rows;
     }
 

@@ -52,6 +52,12 @@ class Database
                 // integers instead of strings.
                 PDO::ATTR_EMULATE_PREPARES => false,
                 PDO::ATTR_TIMEOUT => 5,
+
+                // LEGACY: no error mode set, so this relies on the PHP 7
+                // default of PDO::ERRMODE_SILENT.
+
+                // MIGRATION FIX #5
+                // PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             ]
         );
     }
