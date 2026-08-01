@@ -8,6 +8,7 @@
     only_apps: []
     skip_setup: false
     after_upgrade: false
+    rebuild: false
 
     rsync_excludes:
       - /.git
@@ -84,7 +85,7 @@
 
     - name: Start the containers
       ansible.builtin.command:
-        cmd: docker compose up -d
+        cmd: "docker compose up -d{{ ' --build' if rebuild | bool else '' }}"
         chdir: "{{ project_dir }}/{{ item.dir }}"
       loop: "{{ selected_apps }}"
       loop_control:

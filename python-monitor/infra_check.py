@@ -64,7 +64,13 @@ def check_app(app):
         data = {}
 
     if response.status_code == 200:
-        if data.get("status", "ok") == "ok":
+        if not data:
+            # A 200 without a JSON body is not a working application. When PHP
+            # fails on a require(), it prints a warning first - the headers are
+            # already gone with a 200 - and only then dies. Trusting the status
+            # code alone reports a dead application as healthy.
+            result["state"] = "error"
+        elif data.get("status") == "ok":
             result["state"] = "ok"
         else:
             result["state"] = "degraded"

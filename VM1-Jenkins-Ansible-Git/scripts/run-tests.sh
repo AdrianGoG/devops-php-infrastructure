@@ -28,6 +28,13 @@ cd "$APP_DIR"
 
 APP_NAME=$(basename "$APP_DIR")
 
+# The containers are stopped whatever happens, including when the tests fail or
+# the build is aborted. Without this they pile up on VM1 from build to build.
+cleanup() {
+    docker compose down --remove-orphans > /dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
 # Which command runs the tests. app-crm has no Composer, app-api has no artisan.
 case "$APP_NAME" in
     app-crm)
@@ -61,14 +68,12 @@ echo "--- $APP_NAME: running the tests"
 # DB_HOST and DB_PORT are passed here because the test configuration points at
 # 127.0.0.1 and the published port, which is right from the host but wrong from
 # inside the container, where the database is simply "mysql".
+set +e
 docker compose run --rm \
     -e DB_HOST=mysql \
     -e DB_PORT=3306 \
     php $TEST_CMD
-
 RESULT=$?
-
-echo "--- $APP_NAME: cleaning up"
-docker compose down
+set -e
 
 exit $RESULT
