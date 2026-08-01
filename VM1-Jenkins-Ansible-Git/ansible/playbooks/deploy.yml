@@ -97,7 +97,7 @@
       loop: "{{ selected_apps | subelements('setup', skip_missing=true) }}"
       loop_control:
         label: "{{ item.0.name }}: {{ item.1 }}"
-      when: not skip_setup and (after_upgrade or not (item.0.blocked | default(false)))
+      when: not (skip_setup | bool) and ((after_upgrade | bool) or not (item.0.blocked | default(false)))
       changed_when: true
 
     - name: Look for a Laravel application without an application key
@@ -118,7 +118,7 @@
       loop: "{{ appkey.results }}"
       loop_control:
         label: "{{ item.item.name }}"
-      when: item.rc == 0 and not skip_setup and (after_upgrade or not (item.item.blocked | default(false)))
+      when: item.rc == 0 and not (skip_setup | bool) and ((after_upgrade | bool) or not (item.item.blocked | default(false)))
       changed_when: true
 
     - name: Restart php and nginx so they pick up the new code and configuration
@@ -163,4 +163,4 @@
         label: "{{ item.item.name }}"
       when:
         - item.status | default(0) != 200
-        - after_upgrade or not (item.item.blocked | default(false))
+        - (after_upgrade | bool) or not (item.item.blocked | default(false))

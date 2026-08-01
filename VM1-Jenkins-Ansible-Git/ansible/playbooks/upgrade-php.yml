@@ -18,7 +18,7 @@
     - name: Keep only the applications the upgrade is meant to unblock
       ansible.builtin.set_fact:
         selected_apps: "{{ selected_apps | selectattr('blocked', 'defined') | selectattr('blocked') | list }}"
-      when: only_blocked
+      when: only_blocked | bool
 
     - name: Show what is going to be upgraded
       ansible.builtin.debug:
@@ -74,7 +74,7 @@
           {{ item.item.name }}:
           {{ 'OK' if item.status | default(0) == 200
              else ('rebuilt on PHP ' ~ php_version ~ ' - run deploy.yml with after_upgrade=true to install the dependencies'
-                   if only_blocked else 'STILL DOWN') }}
+                   if only_blocked | bool else 'STILL DOWN') }}
       loop: "{{ health.results }}"
       loop_control:
         label: "{{ item.item.name }}"
@@ -87,4 +87,4 @@
         label: "{{ item.item.name }}"
       when:
         - item.status | default(0) != 200
-        - not only_blocked
+        - not (only_blocked | bool)
