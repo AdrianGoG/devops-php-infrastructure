@@ -5,6 +5,7 @@
   vars:
     php_version: "8.3"
     project_dir: /opt/devops-php-infrastructure
+    repo_dir: "{{ playbook_dir }}/../../.."
     only_apps: []
     only_blocked: false
     health_retries: 12
@@ -43,6 +44,16 @@
       loop_control:
         label: "{{ item.name }}"
       register: dockerfiles
+
+    - name: Record the new version in the repository on the control node
+      ansible.builtin.replace:
+        path: "{{ repo_dir }}/{{ item.dir }}/docker/php/Dockerfile"
+        regexp: '^FROM php:.*-fpm$'
+        replace: "FROM php:{{ php_version }}-fpm"
+      loop: "{{ selected_apps }}"
+      loop_control:
+        label: "{{ item.name }}"
+      delegate_to: localhost
 
     - name: Rebuild the containers that changed
       ansible.builtin.command:

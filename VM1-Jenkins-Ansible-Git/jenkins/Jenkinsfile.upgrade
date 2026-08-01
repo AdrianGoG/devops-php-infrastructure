@@ -145,6 +145,26 @@ pipeline {
             echo "PHP ${params.PHP_VERSION} installed, but some applications need their source code fixed."
         }
 
+        cleanup {
+            echo """
+            ------------------------------------------------------------------
+            This build changed the servers, not the repository. Jenkins works in
+            a throwaway workspace and cannot push to GitHub.
+
+            Until the new version is committed, the Dockerfiles in Git still say
+            the old one - and the next deployment rebuilds from Git, which would
+            put every application back on it.
+
+            Record it, on the control node:
+
+                cd ~/devops-php-infrastructure/VM1-Jenkins-Ansible-Git/ansible
+                ansible-playbook playbooks/upgrade-php.yml -e php_version=${params.PHP_VERSION}
+                cd ~/devops-php-infrastructure
+                git commit -am 'The estate runs PHP ${params.PHP_VERSION}' && git push
+            ------------------------------------------------------------------
+            """.stripIndent()
+        }
+
         failure {
             echo 'The upgrade failed. Check the Ansible output above.'
         }

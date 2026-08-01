@@ -227,8 +227,19 @@ def main():
         print("  Saved in", args.report)
         print()
 
-    # Exit code for Jenkins: 1 if something is not working.
-    if ok_count < len(results) or broken > 0:
+    # Exit code for Jenkins.
+    #
+    # With --compare the question is "did this change break anything?", so only
+    # a regression counts. An application that was already down before is not
+    # the fault of the deployment that just ran, and failing the build for it
+    # would mean every build stays red until somebody fixes something unrelated.
+    #
+    # Without --compare the question is the wider one - "is the whole estate
+    # up?" - and anything down fails.
+    if args.compare:
+        return 1 if broken > 0 else 0
+
+    if ok_count < len(results):
         return 1
 
     return 0

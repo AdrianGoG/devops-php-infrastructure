@@ -4,6 +4,7 @@
 
   vars:
     project_dir: /opt/devops-php-infrastructure
+    repo_dir: "{{ playbook_dir }}/../../.."
     only_apps: []
     only_blocked: false
 
@@ -43,6 +44,28 @@
       loop_control:
         label: "{{ item.item.name }}"
       when: item.stat.exists
+
+    - name: Read the version that was restored
+      ansible.builtin.command:
+        cmd: head -1 docker/php/Dockerfile
+        chdir: "{{ project_dir }}/{{ item.item.dir }}"
+      loop: "{{ backups.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+      when: item.stat.exists
+      register: restored_from
+      changed_when: false
+
+    - name: Record the restored version in the repository on the control node
+      ansible.builtin.replace:
+        path: "{{ repo_dir }}/{{ item.item.item.dir }}/docker/php/Dockerfile"
+        regexp: '^FROM php:.*-fpm$'
+        replace: "{{ item.stdout }}"
+      loop: "{{ restored_from.results }}"
+      loop_control:
+        label: "{{ item.item.item.name }}"
+      when: not (item.skipped | default(false))
+      delegate_to: localhost
 
     - name: Remove the dependencies of the applications the upgrade unblocked
       ansible.builtin.command:

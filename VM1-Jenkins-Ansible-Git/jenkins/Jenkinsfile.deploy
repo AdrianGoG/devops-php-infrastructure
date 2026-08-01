@@ -122,6 +122,22 @@ pipeline {
             }
         }
 
+        stage('Status before the deployment') {
+            steps {
+                script {
+                    def only = params.APP ? "--only ${params.APP}" : ''
+
+                    // The baseline the smoke test compares against. An
+                    // application that is already down before this build starts
+                    // is not something this build broke.
+                    sh(
+                        script: "python3 ${MONITOR} ${only} --report before-deploy.json",
+                        returnStatus: true
+                    )
+                }
+            }
+        }
+
         stage('Deploy') {
             steps {
                 dir("${ANSIBLE}") {
@@ -143,14 +159,18 @@ pipeline {
                 script {
                     def only = params.APP ? "--only ${params.APP}" : ''
 
+                    // --compare makes the exit code depend on regressions only:
+                    // an application that worked before this build and does not
+                    // work after it. Anything already down stays reported but
+                    // does not fail the build.
                     def result = sh(
-                        script: "python3 ${MONITOR} ${only} --report after-deploy.json",
+                        script: "python3 ${MONITOR} ${only} --report after-deploy.json --compare before-deploy.json",
                         returnStatus: true
                     )
 
                     if (result != 0) {
                         currentBuild.result = 'UNSTABLE'
-                        echo 'Some applications are not answering. See after-deploy.json.'
+                        echo 'This deployment broke an application that was working before it. See after-deploy.json.'
                     }
                 }
             }
@@ -159,7 +179,7 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: 'after-deploy.json', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'before-deploy.json, after-deploy.json', allowEmptyArchive: true
             archiveArtifacts artifacts: 'python-monitor/logs/*.log', allowEmptyArchive: true
         }
 
