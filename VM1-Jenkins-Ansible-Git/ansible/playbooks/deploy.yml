@@ -12,6 +12,7 @@
     rsync_excludes:
       - /.git
       - /src/.env
+      - /docker/php/Dockerfile.backup
       - /src/vendor/
       - /src/node_modules/
       - /src/storage/logs/

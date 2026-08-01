@@ -64,6 +64,31 @@ pipeline {
             }
         }
 
+        stage('Install what could not be installed before') {
+            steps {
+                dir("${ANSIBLE}") {
+                    script {
+                        def limit = params.SERVER == 'all' ? '' : "--limit ${params.SERVER}"
+
+                        // after_upgrade=true tells the deployment to ignore the
+                        // "blocked" flag: Composer could not install on the old
+                        // PHP version, and now it can.
+                        //
+                        // returnStatus so a legacy application that breaks on the
+                        // new version does not fail the build here - that is what
+                        // the next stage is for, and it reports it as UNSTABLE.
+                        sh(
+                            script: """
+                                ansible-playbook playbooks/deploy.yml \
+                                    -e after_upgrade=true ${limit}
+                            """,
+                            returnStatus: true
+                        )
+                    }
+                }
+            }
+        }
+
         stage('Status after the upgrade') {
             steps {
                 script {

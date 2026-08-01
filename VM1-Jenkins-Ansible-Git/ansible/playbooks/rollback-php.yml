@@ -43,14 +43,21 @@
       loop_control:
         label: "{{ item.item.name }}"
       when: item.stat.exists
-      register: restored
 
     - name: Rebuild the containers
       ansible.builtin.command:
         cmd: docker compose up -d --build
-        chdir: "{{ project_dir }}/{{ item.item.item.dir }}"
-      loop: "{{ restored.results }}"
+        chdir: "{{ project_dir }}/{{ item.item.dir }}"
+      loop: "{{ backups.results }}"
       loop_control:
-        label: "{{ item.item.item.name }}"
-      when: item.changed | default(false)
+        label: "{{ item.item.name }}"
+      when: item.stat.exists
       changed_when: true
+
+    - name: Report
+      ansible.builtin.debug:
+        msg: "{{ item.item.name }}: rebuilt from Dockerfile.backup"
+      loop: "{{ backups.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+      when: item.stat.exists
