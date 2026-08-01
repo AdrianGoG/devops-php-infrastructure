@@ -18,6 +18,7 @@ apps:
     blocked: true
     setup:
       - composer install --no-dev --optimize-autoloader --no-interaction
+      - chmod -R 0777 storage/app/uploads
       - php artisan migrate --force
       - php artisan config:clear
 

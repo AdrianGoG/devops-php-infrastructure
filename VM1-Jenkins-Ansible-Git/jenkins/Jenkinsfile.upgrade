@@ -54,11 +54,7 @@ pipeline {
                 dir("${ANSIBLE}") {
                     script {
                         def limit = params.SERVER == 'all' ? '' : "--limit ${params.SERVER}"
-
-                        // returnStatus, because the playbook fails on purpose
-                        // when a legacy application does not come back up - and
-                        // that is the expected outcome here, not a broken build.
-                        // The report two stages down decides SUCCESS or UNSTABLE.
+                        // The report two stages down decides SUCCESS or UNSTABLE
                         def status = sh(
                             script: """
                                 ansible-playbook playbooks/upgrade-php.yml \
@@ -80,14 +76,7 @@ pipeline {
                 dir("${ANSIBLE}") {
                     script {
                         def limit = params.SERVER == 'all' ? '' : "--limit ${params.SERVER}"
-
-                        // after_upgrade=true tells the deployment to ignore the
-                        // "blocked" flag: Composer could not install on the old
-                        // PHP version, and now it can.
-                        //
-                        // returnStatus so a legacy application that breaks on the
-                        // new version does not fail the build here - that is what
-                        // the next stage is for, and it reports it as UNSTABLE.
+                        // the next stage is for and it reports it as UNSTABLE
                         sh(
                             script: """
                                 ansible-playbook playbooks/deploy.yml \
@@ -109,9 +98,7 @@ pipeline {
                     )
 
                     if (result != 0) {
-                        // UNSTABLE, not FAILED: an application that breaks after
-                        // the upgrade is the expected outcome for the legacy
-                        // code, and the next step is to fix that code.
+                        // UNSTABLE not FAILED an application that breaks after
                         currentBuild.result = 'UNSTABLE'
                         echo 'Some applications are not working after the upgrade. See after.json.'
                     } else {

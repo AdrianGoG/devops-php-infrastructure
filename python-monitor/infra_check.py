@@ -1,18 +1,25 @@
 import argparse
 import json
+import os
 import socket
 import sys
 from datetime import datetime
 
 import requests
 
-LOG_FILE = "logs/monitor.log"
+# Paths are taken from the script's own folder, not from the current directory,
+# so it works the same when Jenkins runs it as python-monitor/infra_check.py
+# from the root of the workspace.
+HERE = os.path.dirname(os.path.abspath(__file__))
+LOG_FILE = os.path.join(HERE, "logs", "monitor.log")
 TIMEOUT = 5
 
 
 def log(message):
     """Write one line in the log file."""
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
 
     with open(LOG_FILE, "a", encoding="utf-8") as f:
         f.write(now + "  " + message + "\n")
@@ -155,7 +162,9 @@ def compare(old_file, results):
 
 def main():
     parser = argparse.ArgumentParser(description="Check the infrastructure.")
-    parser.add_argument("--targets", default="targets.json", help="file with the servers and applications")
+    parser.add_argument("--targets", default=os.path.join(HERE, "targets.json"),
+                        help="file with the servers and applications")
+    parser.add_argument("--only", help="check one application only, by name")
     parser.add_argument("--report", help="save the result in a JSON file")
     parser.add_argument("--compare", help="compare with a saved JSON file")
     args = parser.parse_args()
@@ -175,8 +184,17 @@ def main():
             log("server {} ({}) is NOT reachable".format(server["key"], server["host"]))
 
     # Check the applications.
+    applications = targets["applications"]
+
+    if args.only:
+        applications = [a for a in applications if a["name"] == args.only]
+
+        if not applications:
+            print("No application named", args.only, "in", args.targets)
+            sys.exit(1)
+
     results = []
-    for app in targets["applications"]:
+    for app in applications:
         result = check_app(app)
         results.append(result)
 
