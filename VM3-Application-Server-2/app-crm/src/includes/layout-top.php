@@ -33,7 +33,20 @@ if (!isset($pageTitle)) {
                 </span>
             </a>
 
-            <a href="/create.php" class="btn btn-accent btn-sm">+ New client</a>
+            <?php if (crm_logged_in()): ?>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="/create.php" class="btn btn-accent btn-sm">+ New client</a>
+
+                    <span class="text-dim small d-none d-md-inline ms-1">
+                        <?php echo e(crm_user()['name']); ?>
+                    </span>
+
+                    <form method="post" action="/logout.php" class="m-0">
+                        <input type="hidden" name="_token" value="<?php echo e(crm_csrf_token()); ?>">
+                        <button type="submit" class="btn btn-ghost btn-sm">Sign out</button>
+                    </form>
+                </div>
+            <?php endif; ?>
         </div>
     </nav>
 

@@ -6,6 +6,8 @@
 
 require_once __DIR__ . '/../includes/bootstrap.php';
 
+crm_require_login();
+
 $id = isset($_GET['id']) ? (int) $_GET['id'] : (isset($_POST['id']) ? (int) $_POST['id'] : 0);
 
 $existing = crm_find_client($id);

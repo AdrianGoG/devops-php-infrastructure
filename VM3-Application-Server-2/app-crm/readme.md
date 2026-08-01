@@ -24,11 +24,49 @@ framework, no Composer, no vendor directory**. Every page is a real file in
 
 | Page | Method | What it does |
 |---|---|---|
+| `/login.php` | GET, POST | Sign in - the only page open to an anonymous visitor |
+| `/logout.php` | POST | Sign out - POST only, CSRF protected |
 | `/index.php` | GET | Client list, with a text search and a status filter |
 | `/create.php` | GET, POST | Add a client |
 | `/edit.php?id=N` | GET, POST | Edit a client (404 when the id does not exist) |
 | `/delete.php` | POST | Delete a client - POST only, CSRF protected |
 | `/health.php` | GET | JSON health check, same contract as the other applications |
+
+### Signing in
+
+The client register is not public. Every page above calls `crm_require_login()`
+before it prints anything, and sends an anonymous visitor to `/login.php`.
+
+| | |
+|---|---|
+| Email | `admin@devops.test` |
+| Password | `password` |
+
+The account is created by `bin/install.php`, which the deployment playbook runs
+on every deployment. The script is idempotent in the strict sense: if the account
+already exists it is left exactly as it is, password included, so changing the
+password on the server survives the next deployment. Set `CRM_ADMIN_EMAIL`,
+`CRM_ADMIN_PASSWORD` and `CRM_ADMIN_NAME` in `.env` **before** the first
+deployment to start from different credentials.
+
+Three details worth pointing at, because they are the ones usually missed in a
+hand-rolled login:
+
+- **`/health.php` stays open.** The Python monitor, Prometheus and the Jenkins
+  smoke test have to reach it without credentials. It exposes a status, a PHP
+  version and a row count - no client data. Putting the guard in `bootstrap.php`
+  instead of in each page would have locked the monitoring out of the whole
+  estate, and the failure would have looked like an outage.
+- **A wrong email and a wrong password give the same answer**, and take the same
+  time: an unknown address is still verified against a throwaway hash, so the
+  page cannot be used to find out which addresses have an account.
+- **The session id is regenerated on login**, so an id planted before the login
+  cannot be reused after it. Signing out empties the session, drops its cookie
+  and destroys it server side.
+
+Passwords are stored with `password_hash()` using the default algorithm, and
+checked with `password_verify()`. No library, no framework - the same rule as the
+rest of this application.
 
 A client has a company, a contact name, an email, an optional phone, a status
 (`lead`, `active`, `churned`), comma separated tags and free notes.
@@ -62,14 +100,18 @@ app-crm/
 │   └── mysql/init/01-schema.sql    # the schema AND the demo data
 ├── MIGRATION.md                    # the PHP 7.4 → 8.3 dossier
 └── src/
+    ├── bin/install.php             # users table + the sign in account
     ├── public/                     # every page is a real file
-    │   ├── index.php  create.php  edit.php  delete.php  health.php
+    │   ├── login.php  logout.php   # open to an anonymous visitor
+    │   ├── index.php  create.php  edit.php  delete.php   ← behind the login
+    │   ├── health.php              # open on purpose, for the monitoring
     │   └── assets/{css/app.css, vendor/bootstrap/}
     ├── includes/
     │   ├── bootstrap.php           # the only file the pages include
     │   ├── config.php              # .env parser, error reporting, session
     │   ├── db.php                  # PDO + three query helpers
     │   ├── functions.php           # helpers  ← the three legacy constructs
+    │   ├── auth.php                # sessions, password_verify, the guard
     │   ├── client-form.php         # form shared by create and edit
     │   └── layout-top.php / layout-bottom.php
     └── tests/run-tests.php         # the test suite

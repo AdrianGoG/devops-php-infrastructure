@@ -10,15 +10,15 @@
     after_upgrade: false
 
     rsync_excludes:
-      - .git
-      - .env
-      - vendor/
-      - node_modules/
-      - storage/logs/
-      - storage/framework/cache/
-      - storage/framework/sessions/
-      - storage/framework/views/
-      - database/*.sqlite
+      - /.git
+      - /src/.env
+      - /src/vendor/
+      - /src/node_modules/
+      - /src/storage/logs/
+      - /src/storage/framework/cache/
+      - /src/storage/framework/sessions/
+      - /src/storage/framework/views/
+      - /src/database/*.sqlite
 
     health_retries: 12
     health_delay: 5

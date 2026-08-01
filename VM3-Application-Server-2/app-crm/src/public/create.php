@@ -6,6 +6,8 @@
 
 require_once __DIR__ . '/../includes/bootstrap.php';
 
+crm_require_login();
+
 $errors = array();
 $client = array(
     'company' => '',

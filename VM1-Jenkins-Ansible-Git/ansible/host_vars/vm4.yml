@@ -8,6 +8,7 @@ apps:
     setup:
       - composer install --no-dev --optimize-autoloader --no-interaction
       - php artisan migrate --force
+      - php artisan db:seed --force
       - php artisan config:clear
 
   - name: app-file-manager

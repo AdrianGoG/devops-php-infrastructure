@@ -146,6 +146,30 @@ try {
 
     $counts = crm_count_by_status();
     check_true('crm_count_by_status() returns counters', count($counts) > 0);
+
+    // -----------------------------------------------------------------------
+    echo PHP_EOL . 'Authentication' . PHP_EOL;
+
+    crm_execute(crm_users_schema());
+
+    $account = crm_select_one('SELECT email FROM users ORDER BY id LIMIT 1');
+
+    check_true('bin/install.php created an account', $account !== null);
+
+    if ($account !== null) {
+        check_true(
+            'a wrong password is rejected',
+            crm_attempt_login($account['email'], 'definitely-not-the-password') === false
+        );
+    }
+
+    check_true(
+        'an unknown email is rejected',
+        crm_attempt_login('nobody@example.invalid', 'password') === false
+    );
+
+    check('nobody is signed in during the tests', null, crm_user());
+    check_true('crm_logged_in() is false without a session', crm_logged_in() === false);
 } catch (Exception $exception) {
     $failed++;
     echo '  FAIL  the database is not reachable' . PHP_EOL;

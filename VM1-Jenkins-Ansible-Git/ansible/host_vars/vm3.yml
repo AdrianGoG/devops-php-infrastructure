@@ -4,6 +4,8 @@ apps:
     dir: VM3-Application-Server-2/app-crm
     port: 8081
     health: /health.php
+    setup:
+      - php bin/install.php
 
   - name: app-inventory
     dir: VM3-Application-Server-2/app-inventory
@@ -12,6 +14,7 @@ apps:
     setup:
       - composer install --no-dev --optimize-autoloader --no-interaction
       - php artisan migrate --force
+      - php artisan db:seed --force
       - php artisan config:clear
 
   - name: app-ticket-system
@@ -21,4 +24,5 @@ apps:
     setup:
       - composer install --no-dev --optimize-autoloader --no-interaction
       - php artisan migrate --force
+      - php artisan db:seed --force
       - php artisan config:clear

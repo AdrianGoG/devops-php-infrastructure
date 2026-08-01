@@ -6,6 +6,8 @@
 
 require_once __DIR__ . '/../includes/bootstrap.php';
 
+crm_require_login();
+
 $search = isset($_GET['q']) ? crm_clean($_GET['q']) : '';
 $status = isset($_GET['status']) ? crm_clean($_GET['status']) : '';
 
