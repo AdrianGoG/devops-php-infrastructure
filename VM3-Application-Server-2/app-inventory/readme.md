@@ -117,51 +117,29 @@ Served on <http://localhost:8082> (or `http://192.168.0.159:8082` on VM3). The
 MySQL container publishes port **33065** on the host and creates two databases on
 first boot: `inventory` and `inventory_test`.
 
-### Why this Dockerfile looks odd
-
-```dockerfile
-RUN echo 1 > /var/lib/dpkg/info/format
-
-RUN apt-get update && apt-get install -y --no-install-recommends unzip curl libzip-dev \
-	&& docker-php-ext-install pdo_mysql zip opcache \
-	&& apt-get clean && rm -rf /var/lib/apt/lists/*
-```
-
-Neither of those two oddities is decoration. `php:8.0-fpm` was last published in
-November 2023, when PHP 8.0 went out of support, and its dpkg database is damaged
-in two separate ways.
-
-**`/var/lib/dpkg/info/format` is zero bytes.** It is supposed to contain `1`, the
-version of the info database format. Without it, every `apt-get install` dies
-before it starts:
+### If the build fails with a dpkg error
 
 ```
 dpkg: error: corrupt info database format file '/var/lib/dpkg/info/format'
 E: Sub-process /usr/bin/dpkg returned an error code (2)
 ```
 
-**`git` cannot be unpacked.** With the format file repaired, apt gets further and
-then fails on `git` and its dependency `openssh-client`:
+That is not a problem with this Dockerfile - it is a corrupted Docker image store
+on the server. The layer was written to disk incomplete, so files inside the image
+come out truncated to zero bytes. Do not patch around it in the Dockerfile; the
+next build will find a different file damaged.
 
+Reset the store on the affected server and let the playbook rebuild:
+
+```bash
+docker rm -f $(docker ps -aq)
+docker rmi -f $(docker images -q)
+docker system prune -af --volumes
 ```
-Errors were encountered while processing:
- /tmp/apt-dpkg-install-.../13-git_1%3a2.30.2-1+deb11u5_amd64.deb
-E: Sub-process /usr/bin/dpkg returned an error code (1)
+
+```bash
+ansible-playbook playbooks/deploy.yml --limit vm3
 ```
-
-So `git` is gone from the image. Composer does not need it: it downloads packages
-as dist archives from Packagist and only reaches for Git when a repository is
-declared as `source`, which none of them are here. `--no-install-recommends`
-keeps the rest of the dependency tree from dragging it back in.
-
-This is the only image in the estate with the problem - `7.4` (buster), `8.1`,
-`8.2` and `8.3` (bookworm) all build cleanly, on the same host, the same day.
-
-It is also a fair illustration of what this project is about. An abandoned base
-image does not stay frozen in a working state. It rots, and one day a build that
-worked last year stops working for reasons that have nothing to do with your
-code. Every workaround above is a small tax paid for staying on an unsupported
-runtime, and the only way to stop paying it is the upgrade.
 
 ## Local development
 
