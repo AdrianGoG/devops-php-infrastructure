@@ -34,7 +34,7 @@ A client has a company, a contact name, an email, an optional phone, a status
 (`lead`, `active`, `churned`), comma separated tags and free notes.
 
 ```bash
-curl -s http://192.168.0.159:8081/health.php
+curl -s http://192.168.0.105:8081/health.php
 ```
 
 ```json
@@ -103,7 +103,7 @@ docker compose exec php cp -n .env.example .env
 That is the whole setup: no `composer install`, no migrations. MySQL creates the
 schema and the demo data on its first boot.
 
-Served on <http://localhost:8081> (or `http://192.168.0.159:8081` on VM3). The
+Served on <http://localhost:8081> (or `http://192.168.0.105:8081` on VM3). The
 MySQL container publishes port **33064** on the host.
 
 ## Local development

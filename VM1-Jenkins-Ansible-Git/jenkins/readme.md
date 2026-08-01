@@ -71,7 +71,7 @@ pip3 install -r python-monitor/requirements.txt
 ```
 
 Plus SSH keys from the Jenkins user to `verloc@192.168.0.169`,
-`blackwell@192.168.0.159` and `cortana@192.168.0.125` - the same keys Ansible
+`blackwell@192.168.0.105` and `cortana@192.168.0.125` - the same keys Ansible
 uses. Check with:
 
 ```bash

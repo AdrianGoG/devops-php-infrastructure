@@ -41,7 +41,7 @@ model - the list header shows how many are in that state and the total value of
 the stock currently displayed.
 
 ```bash
-curl -s http://192.168.0.159:8082/health
+curl -s http://192.168.0.105:8082/health
 ```
 
 ```json
@@ -113,7 +113,7 @@ docker compose exec php php artisan migrate --force
 docker compose exec php php artisan db:seed --force
 ```
 
-Served on <http://localhost:8082> (or `http://192.168.0.159:8082` on VM3). The
+Served on <http://localhost:8082> (or `http://192.168.0.105:8082` on VM3). The
 MySQL container publishes port **33065** on the host and creates two databases on
 first boot: `inventory` and `inventory_test`.
 

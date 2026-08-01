@@ -60,7 +60,7 @@ Every application folder has the same shape: `docker-compose.yml`,
 |---|---|---|---|
 | VM1 | control node - Git, Jenkins, Ansible, Prometheus, Grafana | 192.168.0.106 | bartikus |
 | VM2 | application server 1 | 192.168.0.169 | verloc |
-| VM3 | application server 2 | 192.168.0.159 | blackwell |
+| VM3 | application server 2 | 192.168.0.105 | blackwell |
 | VM4 | application server 3 | 192.168.0.125 | cortana |
 
 These addresses appear in
@@ -112,7 +112,7 @@ Only VM1 talks to the servers, and it does it over SSH:
 ```bash
 ssh-keygen -t ed25519
 ssh-copy-id verloc@192.168.0.169
-ssh-copy-id blackwell@192.168.0.159
+ssh-copy-id blackwell@192.168.0.105
 ssh-copy-id cortana@192.168.0.125
 ```
 
@@ -301,7 +301,7 @@ python3 infra_check.py
   Infrastructure report - 31.07.2026 10:14:22
   ----------------------------------------------------------------------
   vm2    192.168.0.169    reachable
-  vm3    192.168.0.159    reachable
+  vm3    192.168.0.105    reachable
   vm4    192.168.0.125    reachable
   ----------------------------------------------------------------------
   application           srv   php      code   time     state

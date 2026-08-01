@@ -86,7 +86,7 @@ class Seeder
                 'server_key' => 'vm3',
                 'name' => 'VM3 - Application Server 2',
                 'role' => 'Web server & applications',
-                'host' => '192.168.0.159',
+                'host' => '192.168.0.105',
                 'os' => 'Ubuntu Server 24.04 LTS',
                 'is_controller' => 0,
                 'summary' => 'Hosts the business applications: CRM, inventory and the ticketing system.',

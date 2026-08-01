@@ -237,7 +237,7 @@
 
 <span class="c-dim">── connectivity ──────────────────────</span>
 vm2  192.168.0.169   <span class="c-ok">reachable</span>   1.8 ms
-vm3  192.168.0.159   <span class="c-ok">reachable</span>   2.1 ms
+vm3  192.168.0.105   <span class="c-ok">reachable</span>   2.1 ms
 vm4  192.168.0.125   <span class="c-ok">reachable</span>   2.4 ms
 
 <span class="c-dim">── applications ──────────────────────</span>

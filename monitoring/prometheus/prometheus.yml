@@ -16,7 +16,7 @@ scrape_configs:
       - targets: ['192.168.0.169:9100']
         labels:
           server: vm2
-      - targets: ['192.168.0.159:9100']
+      - targets: ['192.168.0.105:9100']
         labels:
           server: vm3
       - targets: ['192.168.0.125:9100']

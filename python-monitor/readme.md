@@ -99,5 +99,5 @@ that is the port Ansible needs anyway.
 To add an application, add a line in `targets.json`:
 
 ```json
-{ "name": "app-new", "server": "vm3", "url": "http://192.168.0.159:8084/health" }
+{ "name": "app-new", "server": "vm3", "url": "http://192.168.0.105:8084/health" }
 ```

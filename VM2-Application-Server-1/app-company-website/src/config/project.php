@@ -168,7 +168,7 @@ return [
             'key' => 'vm3',
             'name' => 'VM3 - Application Server 2',
             'role' => 'Web server & applications',
-            'host' => '192.168.0.159',
+            'host' => '192.168.0.105',
             'os' => 'Ubuntu Server 24.04 LTS',
             'stack' => ['NGINX', 'Docker', 'Docker Compose'],
             'is_controller' => false,

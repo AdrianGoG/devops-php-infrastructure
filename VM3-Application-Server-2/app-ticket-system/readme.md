@@ -51,7 +51,7 @@ The queue is ordered by priority first - urgent at the top - through a
 `FIELD(priority, ...)` clause, then newest first.
 
 ```bash
-curl -s http://192.168.0.159:8083/health
+curl -s http://192.168.0.105:8083/health
 ```
 
 ```json
@@ -139,7 +139,7 @@ docker compose exec php php artisan migrate --force
 docker compose exec php php artisan db:seed --force
 ```
 
-Served on <http://localhost:8083> (or `http://192.168.0.159:8083` on VM3). The
+Served on <http://localhost:8083> (or `http://192.168.0.105:8083` on VM3). The
 MySQL container publishes port **33066** on the host and creates two databases on
 first boot: `tickets` and `tickets_test`.
 
