@@ -44,6 +44,19 @@
         label: "{{ item.item.name }}"
       when: item.stat.exists
 
+    - name: Remove the dependencies of the applications the upgrade unblocked
+      ansible.builtin.command:
+        cmd: docker compose exec -T php rm -rf vendor
+        chdir: "{{ project_dir }}/{{ item.item.dir }}"
+      loop: "{{ backups.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+      when:
+        - item.stat.exists
+        - item.item.blocked | default(false)
+      failed_when: false
+      changed_when: true
+
     - name: Rebuild the containers
       ansible.builtin.command:
         cmd: docker compose up -d --build

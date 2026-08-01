@@ -55,10 +55,21 @@ pipeline {
                     script {
                         def limit = params.SERVER == 'all' ? '' : "--limit ${params.SERVER}"
 
-                        sh """
-                            ansible-playbook playbooks/upgrade-php.yml \
-                                -e php_version=${params.PHP_VERSION} ${limit}
-                        """
+                        // returnStatus, because the playbook fails on purpose
+                        // when a legacy application does not come back up - and
+                        // that is the expected outcome here, not a broken build.
+                        // The report two stages down decides SUCCESS or UNSTABLE.
+                        def status = sh(
+                            script: """
+                                ansible-playbook playbooks/upgrade-php.yml \
+                                    -e php_version=${params.PHP_VERSION} ${limit}
+                            """,
+                            returnStatus: true
+                        )
+
+                        if (status != 0) {
+                            echo "Ansible reported applications still down after the upgrade (exit ${status}). Continuing to the report."
+                        }
                     }
                 }
             }
