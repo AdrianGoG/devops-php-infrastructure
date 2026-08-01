@@ -100,6 +100,16 @@
         label: "{{ item.0.name }}: {{ item.1 }}"
       when: not (skip_setup | bool) and ((after_upgrade | bool) or not (item.0.blocked | default(false)))
       changed_when: true
+      register: setup
+      failed_when: false
+
+    - name: Show the setup commands that failed
+      ansible.builtin.debug:
+        msg: "{{ item.item.0.name }} - '{{ item.item.1 }}' failed: {{ item.stderr | default(item.stdout) | default('') | truncate(300) }}"
+      loop: "{{ setup.results }}"
+      loop_control:
+        label: "{{ item.item.0.name }}"
+      when: item.rc | default(0) != 0
 
     - name: Look for a Laravel application without an application key
       ansible.builtin.shell:
