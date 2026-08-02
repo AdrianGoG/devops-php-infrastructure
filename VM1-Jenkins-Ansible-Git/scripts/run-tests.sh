@@ -59,6 +59,14 @@ for i in $(seq 1 30); do
     sleep 2
 done
 
+# .env is not in the repository, so a fresh checkout has none and the
+# application falls back to its built in defaults - which is how app-crm ends up
+# trying to reach MySQL without a password.
+if [ -f src/.env.example ] && [ ! -f src/.env ]; then
+    echo "--- $APP_NAME: creating .env from .env.example"
+    cp src/.env.example src/.env
+fi
+
 echo "--- $APP_NAME: installing the dependencies"
 if [ -f src/composer.json ]; then
     docker compose run --rm php composer install --no-interaction --no-progress
