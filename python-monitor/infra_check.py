@@ -7,9 +7,6 @@ from datetime import datetime
 
 import requests
 
-# Paths are taken from the script's own folder, not from the current directory,
-# so it works the same when Jenkins runs it as python-monitor/infra_check.py
-# from the root of the workspace.
 HERE = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE = os.path.join(HERE, "logs", "monitor.log")
 TIMEOUT = 5
@@ -49,14 +46,12 @@ def check_app(app):
     try:
         response = requests.get(app["url"], timeout=TIMEOUT)
     except requests.RequestException:
-        # No answer at all: the container or the server is down.
+        # No answer at all the container or the server is down
         return result
 
     result["code"] = response.status_code
     result["time_ms"] = int(response.elapsed.total_seconds() * 1000)
 
-    # Read the PHP version from the JSON answer, if there is one. A broken
-    # application answers 500 with an empty body, so this can fail.
     try:
         data = response.json()
         result["php"] = data.get("php")
@@ -228,14 +223,7 @@ def main():
         print()
 
     # Exit code for Jenkins.
-    #
-    # With --compare the question is "did this change break anything?", so only
-    # a regression counts. An application that was already down before is not
-    # the fault of the deployment that just ran, and failing the build for it
-    # would mean every build stays red until somebody fixes something unrelated.
-    #
-    # Without --compare the question is the wider one - "is the whole estate
-    # up?" - and anything down fails.
+    
     if args.compare:
         return 1 if broken > 0 else 0
 
