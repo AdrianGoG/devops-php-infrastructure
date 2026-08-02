@@ -1,0 +1,12 @@
+[2026-07-30 12:34:16] testing.WARNING: The infrastructure registry is unreachable. {"path":"/api/applications","error":"cURL error 6: Could not resolve host: registry.test (see https://curl.haxx.se/libcurl/c/libcurl-errors.html) for http://registry.test/api/applications."} 
+[2026-07-30 12:34:16] testing.WARNING: The infrastructure registry is unreachable. {"path":"/api/servers","error":"cURL error 6: Could not resolve host: registry.test (see https://curl.haxx.se/libcurl/c/libcurl-errors.html) for http://registry.test/api/servers."} 
+[2026-07-30 12:34:16] testing.WARNING: The infrastructure registry is unreachable. {"path":"/api/deployments","error":"cURL error 6: Could not resolve host: registry.test (see https://curl.haxx.se/libcurl/c/libcurl-errors.html) for http://registry.test/api/deployments?limit=8."} 
+[2026-07-30 12:34:16] testing.WARNING: The infrastructure registry answered with an error. {"path":"/api/applications","status":503} 
+[2026-07-30 12:34:16] testing.WARNING: The infrastructure registry answered with an error. {"path":"/api/servers","status":503} 
+[2026-07-30 12:34:16] testing.WARNING: The infrastructure registry answered with an error. {"path":"/api/deployments","status":503} 
+[2026-07-30 12:34:36] testing.WARNING: The infrastructure registry is unreachable. {"path":"/api/applications","error":"cURL error 6: Could not resolve host: registry.test (see https://curl.haxx.se/libcurl/c/libcurl-errors.html) for http://registry.test/api/applications."} 
+[2026-07-30 12:34:36] testing.WARNING: The infrastructure registry is unreachable. {"path":"/api/servers","error":"cURL error 6: Could not resolve host: registry.test (see https://curl.haxx.se/libcurl/c/libcurl-errors.html) for http://registry.test/api/servers."} 
+[2026-07-30 12:34:36] testing.WARNING: The infrastructure registry is unreachable. {"path":"/api/deployments","error":"cURL error 6: Could not resolve host: registry.test (see https://curl.haxx.se/libcurl/c/libcurl-errors.html) for http://registry.test/api/deployments?limit=8."} 
+[2026-07-30 12:34:36] testing.WARNING: The infrastructure registry answered with an error. {"path":"/api/applications","status":503} 
+[2026-07-30 12:34:36] testing.WARNING: The infrastructure registry answered with an error. {"path":"/api/servers","status":503} 
+[2026-07-30 12:34:36] testing.WARNING: The infrastructure registry answered with an error. {"path":"/api/deployments","status":503} 
