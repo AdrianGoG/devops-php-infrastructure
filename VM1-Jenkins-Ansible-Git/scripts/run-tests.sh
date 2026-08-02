@@ -1,14 +1,4 @@
 #!/bin/bash
-# Runs the test suite of one application, inside its own container.
-#
-#   ./run-tests.sh VM3-Application-Server-2/app-crm
-#
-# The tests run on VM1, before anything is deployed, and on the same PHP version
-# the application uses in production - that is the point of running them in the
-# application's own container instead of with whatever PHP VM1 happens to have.
-#
-# Only the mysql service is started; nginx is not needed and its port would
-# collide with the other applications that use the same one.
 
 set -e
 
@@ -28,14 +18,12 @@ cd "$APP_DIR"
 
 APP_NAME=$(basename "$APP_DIR")
 
-# The containers are stopped whatever happens, including when the tests fail or
-# the build is aborted. Without this they pile up on VM1 from build to build.
 cleanup() {
     docker compose down --remove-orphans > /dev/null 2>&1 || true
 }
+
 trap cleanup EXIT
 
-# Which command runs the tests. app-crm has no Composer, app-api has no artisan.
 case "$APP_NAME" in
     app-crm)
         TEST_CMD="php tests/run-tests.php"
@@ -59,9 +47,6 @@ for i in $(seq 1 30); do
     sleep 2
 done
 
-# .env is not in the repository, so a fresh checkout has none and the
-# application falls back to its built in defaults - which is how app-crm ends up
-# trying to reach MySQL without a password.
 if [ -f src/.env.example ] && [ ! -f src/.env ]; then
     echo "--- $APP_NAME: creating .env from .env.example"
     cp src/.env.example src/.env
@@ -76,10 +61,6 @@ if [ -f src/composer.json ]; then
 
     echo "$OUTPUT"
 
-    # An application whose dependencies need a newer PHP than its own image is
-    # not a failing test suite - it is a suite that cannot run at all. Saying
-    # "skipped" instead of "failed" is the honest answer, and it keeps the
-    # difference visible between "the code is broken" and "the runtime is old".
     if [ $STATUS -ne 0 ]; then
         if echo "$OUTPUT" | grep -q "does not satisfy that requirement"; then
             echo
@@ -92,17 +73,13 @@ if [ -f src/composer.json ]; then
     fi
 fi
 
-# A Laravel application refuses to boot without an application key, and the one
-# in .env.example is deliberately empty.
+
 if [ -f src/artisan ]; then
     echo "--- $APP_NAME: generating the application key"
     docker compose run --rm php php artisan key:generate --force > /dev/null
 fi
 
 echo "--- $APP_NAME: running the tests"
-# DB_HOST and DB_PORT are passed here because the test configuration points at
-# 127.0.0.1 and the published port, which is right from the host but wrong from
-# inside the container, where the database is simply "mysql".
 set +e
 docker compose run --rm \
     -e DB_HOST=mysql \
