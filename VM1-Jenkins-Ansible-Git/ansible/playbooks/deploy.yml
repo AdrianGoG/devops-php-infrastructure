@@ -19,6 +19,7 @@
       - /src/storage/framework/cache/
       - /src/storage/framework/sessions/
       - /src/storage/framework/views/
+      - /src/storage/app/uploads
       - /src/database/*.sqlite
 
     health_retries: 12
