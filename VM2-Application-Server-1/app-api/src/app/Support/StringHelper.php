@@ -37,10 +37,10 @@ class StringHelper
             }
 
             // LEGACY: curly brace string offset - parse error on PHP 8.0+.
-            //$code .= strtoupper($part{0});
+            $code .= strtoupper($part{0});
 
             // MIGRATION FIX #1
-            $code .= strtoupper($part[0]);
+            // $code .= strtoupper($part[0]);
         }
 
         return $code;

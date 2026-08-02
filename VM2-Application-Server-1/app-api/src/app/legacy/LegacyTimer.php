@@ -29,16 +29,16 @@ class LegacyTimer
     /**
      * LEGACY: PHP 4 style constructor, no longer called on PHP 8.0+.
      */
-    // public function LegacyTimer()
-    // {
-    //     $this->startedAt = microtime(true);
-    // }
-
-    // MIGRATION FIX #4
-    public function __construct()
+    public function LegacyTimer()
     {
         $this->startedAt = microtime(true);
     }
+
+    // MIGRATION FIX #4
+    // public function __construct()
+    // {
+    //     $this->startedAt = microtime(true);
+    // }
 
     /**
      * Seconds elapsed since the timer was created.
