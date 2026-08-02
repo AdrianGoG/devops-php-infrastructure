@@ -1,9 +1,11 @@
 pipeline {
     agent any
 
+    options {
+        disableConcurrentBuilds()
+    }
+
     triggers {
-        // A GitHub webhook needs Jenkins to be reachable from the internet,
-        // which it is not on a local network. Polling asks GitHub instead.
         pollSCM('H/5 * * * *')
     }
 
@@ -112,9 +114,6 @@ pipeline {
                     }
 
                     if (failed) {
-                        // The applications of VM4 cannot install their dependencies
-                        // on PHP 8.2, so their tests fail until the upgrade. That is
-                        // expected, and it is why this is UNSTABLE and not an error.
                         currentBuild.result = 'UNSTABLE'
                         echo "Tests failed for: ${failed.join(', ')}"
                     }
@@ -126,10 +125,6 @@ pipeline {
             steps {
                 script {
                     def only = params.APP ? "--only ${params.APP}" : ''
-
-                    // The baseline the smoke test compares against. An
-                    // application that is already down before this build starts
-                    // is not something this build broke.
                     sh(
                         script: "python3 ${MONITOR} ${only} --report before-deploy.json",
                         returnStatus: true
@@ -159,10 +154,6 @@ pipeline {
                 script {
                     def only = params.APP ? "--only ${params.APP}" : ''
 
-                    // --compare makes the exit code depend on regressions only:
-                    // an application that worked before this build and does not
-                    // work after it. Anything already down stays reported but
-                    // does not fail the build.
                     def result = sh(
                         script: "python3 ${MONITOR} ${only} --report after-deploy.json --compare before-deploy.json",
                         returnStatus: true

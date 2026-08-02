@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    options {
+        disableConcurrentBuilds()
+    }
+
     parameters {
         string(
             name: 'PHP_VERSION',
@@ -54,7 +58,7 @@ pipeline {
                 dir("${ANSIBLE}") {
                     script {
                         def limit = params.SERVER == 'all' ? '' : "--limit ${params.SERVER}"
-                        // The report two stages down decides SUCCESS or UNSTABLE
+
                         def status = sh(
                             script: """
                                 ansible-playbook playbooks/upgrade-php.yml \
@@ -76,7 +80,7 @@ pipeline {
                 dir("${ANSIBLE}") {
                     script {
                         def limit = params.SERVER == 'all' ? '' : "--limit ${params.SERVER}"
-                        // the next stage is for and it reports it as UNSTABLE
+
                         sh(
                             script: """
                                 ansible-playbook playbooks/deploy.yml \
@@ -98,7 +102,6 @@ pipeline {
                     )
 
                     if (result != 0) {
-                        // UNSTABLE not FAILED an application that breaks after
                         currentBuild.result = 'UNSTABLE'
                         echo 'Some applications are not working after the upgrade. See after.json.'
                     } else {
@@ -145,28 +148,12 @@ pipeline {
             echo "PHP ${params.PHP_VERSION} installed, but some applications need their source code fixed."
         }
 
-        cleanup {
-            echo """
-            ------------------------------------------------------------------
-            This build changed the servers, not the repository. Jenkins works in
-            a throwaway workspace and cannot push to GitHub.
-
-            Until the new version is committed, the Dockerfiles in Git still say
-            the old one - and the next deployment rebuilds from Git, which would
-            put every application back on it.
-
-            Record it, on the control node:
-
-                cd ~/devops-php-infrastructure/VM1-Jenkins-Ansible-Git/ansible
-                ansible-playbook playbooks/upgrade-php.yml -e php_version=${params.PHP_VERSION}
-                cd ~/devops-php-infrastructure
-                git commit -am 'The estate runs PHP ${params.PHP_VERSION}' && git push
-            ------------------------------------------------------------------
-            """.stripIndent()
-        }
-
         failure {
             echo 'The upgrade failed. Check the Ansible output above.'
+        }
+
+        cleanup {
+            echo "Commit the new version: the servers changed, the repository did not."
         }
     }
 }
