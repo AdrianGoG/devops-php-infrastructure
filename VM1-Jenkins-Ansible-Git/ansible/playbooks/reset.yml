@@ -1,0 +1,34 @@
+---
+- name: Put the blocked applications back to their pre-upgrade state
+  hosts: application_servers
+
+  vars:
+    project_dir: /opt/devops-php-infrastructure
+
+  tasks:
+    - name: Choose the blocked applications
+      ansible.builtin.set_fact:
+        blocked_apps: "{{ apps | selectattr('blocked', 'defined') | selectattr('blocked') | list }}"
+
+    - name: Show what is going to be reset
+      ansible.builtin.debug:
+        msg: "{{ blocked_apps | map(attribute='name') | join(', ') | default('nothing on this server', true) }}"
+
+    - name: Remove the dependencies
+      ansible.builtin.command:
+        cmd: docker compose exec -T php rm -rf vendor
+        chdir: "{{ project_dir }}/{{ item.dir }}"
+      loop: "{{ blocked_apps }}"
+      loop_control:
+        label: "{{ item.name }}"
+      failed_when: false
+      changed_when: true
+
+    - name: Restart php
+      ansible.builtin.command:
+        cmd: docker compose restart php
+        chdir: "{{ project_dir }}/{{ item.dir }}"
+      loop: "{{ blocked_apps }}"
+      loop_control:
+        label: "{{ item.name }}"
+      changed_when: true
