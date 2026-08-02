@@ -57,7 +57,7 @@ class Database
                 // default of PDO::ERRMODE_SILENT.
 
                 // MIGRATION FIX #5
-                // PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             ]
         );
     }

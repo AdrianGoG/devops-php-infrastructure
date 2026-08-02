@@ -26,17 +26,17 @@ class Sorter
     public static function byField(array $rows, $field)
     {
         // LEGACY: create_function() was removed in PHP 8.0.
-        $comparator = create_function(
-            '$a, $b',
-            'return strcmp((string) $a["' . $field . '"], (string) $b["' . $field . '"]);'
-        );
+        // $comparator = create_function(
+        //     '$a, $b',
+        //     'return strcmp((string) $a["' . $field . '"], (string) $b["' . $field . '"]);'
+        // );
 
-        usort($rows, $comparator);
+        //usort($rows, $comparator);
 
         // MIGRATION FIX #2
-        // usort($rows, function (array $a, array $b) use ($field) {
-        //     return strcmp((string) $a[$field], (string) $b[$field]);
-        // });
+        usort($rows, function (array $a, array $b) use ($field) {
+            return strcmp((string) $a[$field], (string) $b[$field]);
+        });
 
         return $rows;
     }

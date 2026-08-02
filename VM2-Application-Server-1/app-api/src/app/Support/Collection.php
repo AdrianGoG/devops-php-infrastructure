@@ -28,8 +28,8 @@ class Collection
 
         // LEGACY: each() was removed in PHP 8.0.
         // MIGRATION FIX #3
-        // foreach ($rows as $row) {
-        while (list($index, $row) = each($rows)) {
+        foreach ($rows as $row) {
+        // while (list($index, $row) = each($rows)) {
             unset($index);
 
             if (!isset($row[$field])) {
