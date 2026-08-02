@@ -72,6 +72,13 @@ if [ -f src/composer.json ]; then
     docker compose run --rm php composer install --no-interaction --no-progress
 fi
 
+# A Laravel application refuses to boot without an application key, and the one
+# in .env.example is deliberately empty.
+if [ -f src/artisan ]; then
+    echo "--- $APP_NAME: generating the application key"
+    docker compose run --rm php php artisan key:generate --force > /dev/null
+fi
+
 echo "--- $APP_NAME: running the tests"
 # DB_HOST and DB_PORT are passed here because the test configuration points at
 # 127.0.0.1 and the published port, which is right from the host but wrong from

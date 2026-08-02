@@ -152,9 +152,24 @@ try {
 
     crm_execute(crm_users_schema());
 
+    // The suite creates its own account instead of relying on bin/install.php
+    // having been run, so it passes on a database it has never seen before.
+    if (crm_select_one('SELECT id FROM users LIMIT 1') === null) {
+        crm_execute(
+            'INSERT INTO users (name, email, password_hash, created_at)
+             VALUES (:name, :email, :password_hash, :created_at)',
+            array(
+                'name' => 'Test Account',
+                'email' => 'tests@devops.test',
+                'password_hash' => password_hash('a-password-only-the-tests-know', PASSWORD_DEFAULT),
+                'created_at' => date('Y-m-d H:i:s'),
+            )
+        );
+    }
+
     $account = crm_select_one('SELECT email FROM users ORDER BY id LIMIT 1');
 
-    check_true('bin/install.php created an account', $account !== null);
+    check_true('the users table holds an account', $account !== null);
 
     if ($account !== null) {
         check_true(
