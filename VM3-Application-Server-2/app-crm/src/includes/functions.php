@@ -46,9 +46,9 @@ function crm_clean($value)
     }
 
     // LEGACY: removed in PHP 8.0.
-    // if (get_magic_quotes_gpc()) {
-    //     $value = stripslashes($value);
-    // }
+    if (get_magic_quotes_gpc()) {
+        $value = stripslashes($value);
+    }
 
     // MIGRATION FIX #2
     // (delete the four lines above - the branch has been dead code since 5.4)
@@ -84,10 +84,10 @@ function crm_format_tags($tags)
     }
 
     // LEGACY: reversed argument order, removed in PHP 8.0.
-   // return implode($pieces, ' · ');
+    return implode($pieces, ' · ');
 
     // MIGRATION FIX #3
-    return implode(' · ', $pieces);
+    // return implode(' · ', $pieces);
 }
 
 /**
@@ -128,10 +128,10 @@ function crm_initial($company)
     }
 
     // LEGACY: curly brace string offset, parse error on PHP 8.0.
-    //return strtoupper($company{0});
+    return strtoupper($company{0});
 
     // MIGRATION FIX #1
-    return strtoupper($company[0]);
+    // return strtoupper($company[0]);
 }
 
 /**
