@@ -4,7 +4,6 @@ apps:
     dir: VM2-Application-Server-1/app-company-website
     port: 8081
     health: /health
-    blocked: true
     setup:
       - composer install --no-dev --optimize-autoloader --no-interaction
       - php artisan migrate --force
