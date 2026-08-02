@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y \
 	unzip \
 	curl
 
-RUN docker-php-ext-install pdo_mysql opcache
+RUN docker-php-ext-install pdo_mysql
 
 WORKDIR /var/www/html
 
